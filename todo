@@ -1,0 +1,57 @@
+circuit steps card => on click shoudn't redirect to another page...
+
+    document:
+        - remove complet...
+        - show a message will changing the status (close the card).
+        - filter just the documents for the specific responsibilityCenter of this user.
+    approval:
+        - in all and seq groups the approver will accept approval auto
+    lines:
+        - choose type -> choose table based on type
+        - order the data and clarify it
+    devise:
+        - add table 
+        - 
+
+    add get apis endpoints:
+        - items: http://localhost:25048/BC250/api/bslink/docverse/v1.0/items
+        - generalAccounts: http://localhost:25048/BC250/api/bslink/docverse/v1.0/accounts
+        - Customers: http://localhost:25048/BC250/api/bslink/docverse/v1.0/customers
+        - Vendors: http://localhost:25048/BC250/api/bslink/docverse/v1.0/vendors
+
+
+add post apis endpoints:
+    - create document: http://localhost:25048/BC250/ODataV4/APICreateDocVerse_CreateDoc?company=CRONUS%20France%20S.A.
+        - body:
+            {
+                "tierTYpe" : 1,
+                "type": 1,
+                "custVendoNo" : "10000",
+                "documentDate" :"2025-07-12",
+                "postingDate" : "2025-07-12",
+                "responsabilityCentre": "PARIS",
+                "externalDocNo": "ExtDoc0001"    
+            }
+    - create document line: http://localhost:25048/BC250/ODataV4/APICreateDocVerse_CreateDocLine?company=CRONUS%20France%20S.A.
+        - body:
+            {
+                "tierTYpe" : 1,
+                "docType" : 1,
+                "docNo": "1002",
+                "type" : 2,
+                "codeLine": "1000",
+                "descriptionLine": "Test unité 2",
+                "locationCOde" : "JAUNE",
+                "uniteOfMeasure": "KG",
+                "qty" : 10,
+                "unitpriceCOst": 15,
+                "discountAmt": 120
+            }
+        
+add get apis endpoints:
+    - get responsability centres: http://localhost:25048/BC250/api/bslink/docverse/v1.0/responsibilityCenters
+    - get units of measure: http://localhost:25048/BC250/api/bslink/docverse/v1.0/UnitofMeasures
+    - get items units of measure: http://localhost:25048/BC250/api/bslink/docverse/v1.0/itemnitofMeasures
+
+add items units of measure table:
+    

@@ -1,0 +1,816 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap");
+@import './styles/form-overrides.css';
+@import './styles/themes.css';
+@import './styles/responsive.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+
+  /* Improved custom scrollbar for the registration form */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  /* Dark mode custom scrollbar */
+  .dark .custom-scrollbar::-webkit-scrollbar-track {
+    background: #1e2430;
+    border-radius: 6px;
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #3b82f6;
+    border-radius: 6px;
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #2563eb;
+  }
+
+  /* Light mode custom scrollbar */
+  .light .custom-scrollbar::-webkit-scrollbar-track,
+  :root:not(.dark) .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 6px;
+  }
+
+  .light .custom-scrollbar::-webkit-scrollbar-thumb,
+  :root:not(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #3b82f6;
+    border-radius: 6px;
+  }
+
+  .light .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+  :root:not(.dark) .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #2563eb;
+  }
+
+  /* HTML and Body - Critical for viewport handling */
+  html {
+    height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    -ms-overflow-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  #root {
+    height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Ensure consistent viewport behavior across zoom levels */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Fix for zoom level consistency */
+  @media screen {
+
+    html,
+    body,
+    #root {
+      min-height: 100vh !important;
+      min-height: 100dvh !important;
+    }
+  }
+
+  /* Enhanced ScrollArea styling for table */
+  .table-scroll-area [data-radix-scroll-area-viewport] {
+    height: 100% !important;
+  }
+
+  .table-scroll-area [data-radix-scroll-area-scrollbar] {
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 6px;
+    width: 8px;
+  }
+
+  .table-scroll-area [data-radix-scroll-area-thumb] {
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 6px;
+    transition: background 0.2s;
+  }
+
+  .table-scroll-area [data-radix-scroll-area-thumb]:hover {
+    background: rgba(59, 130, 246, 0.7);
+  }
+
+  /* Hide scrollbar for body on the registration page */
+  body::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    /* Prevent horizontal scroll on all devices */
+    overflow-x: hidden;
+    /* Ensure proper scaling on high-DPI displays */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+    /* Responsive font sizing using clamp for perfect scaling */
+    font-size: clamp(0.875rem, 0.875rem + 0.1vw, 0.9375rem);
+    line-height: 1.5;
+    /* Prevent layout shift */
+    overflow-x: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* Dynamic viewport height for mobile */
+    /* Better font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Responsive scaling for different viewport sizes */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    body {
+      font-size: clamp(0.8125rem, 0.8125rem + 0.15vw, 0.875rem);
+    }
+  }
+
+  @media (min-width: 1025px) and (max-width: 1440px) {
+    body {
+      font-size: clamp(0.875rem, 0.875rem + 0.1vw, 0.9375rem);
+    }
+  }
+
+  @media (min-width: 1441px) {
+    body {
+      font-size: clamp(0.9375rem, 0.9375rem + 0.05vw, 1rem);
+    }
+  }
+
+  /* High DPI display optimizations */
+  @media (-webkit-min-device-pixel-ratio: 1.5),
+  (min-resolution: 144dpi) {
+    body {
+      font-size: clamp(0.8125rem, 0.8125rem + 0.1vw, 0.875rem);
+    }
+  }
+}
+
+/* Global custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.2);
+  border-radius: 6px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.5);
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.7);
+}
+
+/* Light mode scrollbar */
+.light ::-webkit-scrollbar-track,
+:root:not(.dark) ::-webkit-scrollbar-track {
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 6px;
+}
+
+.light ::-webkit-scrollbar-thumb,
+:root:not(.dark) ::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.4);
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.light ::-webkit-scrollbar-thumb:hover,
+:root:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.6);
+}
+
+/* Firefox scrollbar styling */
+.dark * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.5) rgba(30, 41, 59, 0.2);
+}
+
+.light *,
+:root:not(.dark) * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.4) rgba(59, 130, 246, 0.1);
+}
+
+/* Layout utility classes */
+@layer components {
+  .glass-card {
+    @apply bg-gradient-to-b from-[#0a1033] to-[#0d1541] border border-blue-900/30 backdrop-blur-md shadow-md rounded-lg;
+  }
+
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+
+  .flex-between {
+    @apply flex items-center justify-between;
+  }
+
+  .flex-col-center {
+    @apply flex flex-col items-center justify-center;
+  }
+
+  .input-dark {
+    @apply bg-[#0d1541]/70 border-blue-900/50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-white rounded-md text-sm h-9;
+  }
+
+  .btn-gradient {
+    @apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-md text-sm py-1.5 px-3;
+  }
+
+  /* Light mode specific components */
+  .input-light {
+    @apply bg-blue-50 border-blue-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-blue-900 rounded-md text-sm h-9;
+  }
+
+  .glass-card-light {
+    @apply bg-gradient-to-b from-blue-50 to-white border border-blue-200 backdrop-blur-md shadow-md rounded-lg;
+  }
+
+  /* Professional responsive utilities */
+  .responsive-padding {
+    padding: clamp(0.5rem, 2vw, 1rem) clamp(0.75rem, 3vw, 1.5rem);
+  }
+
+  .responsive-margin {
+    margin: clamp(0.5rem, 2vw, 1rem) clamp(0.75rem, 3vw, 1.5rem);
+  }
+
+  /* Container utility with proper scaling */
+  .container-fluid {
+    width: 100%;
+    max-width: min(100vw - 2rem, 90rem);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: clamp(0.5rem, 2vw, 1.5rem);
+    padding-right: clamp(0.5rem, 2vw, 1.5rem);
+  }
+
+  /* Responsive text sizing */
+  .text-responsive-xs {
+    font-size: clamp(0.75rem, 0.75rem + 0.1vw, 0.8125rem);
+  }
+
+  .text-responsive-sm {
+    font-size: clamp(0.8125rem, 0.8125rem + 0.1vw, 0.875rem);
+  }
+
+  .text-responsive-base {
+    font-size: clamp(0.875rem, 0.875rem + 0.1vw, 0.9375rem);
+  }
+
+  .text-responsive-lg {
+    font-size: clamp(1rem, 1rem + 0.2vw, 1.125rem);
+  }
+
+  .text-responsive-xl {
+    font-size: clamp(1.125rem, 1.125rem + 0.3vw, 1.25rem);
+  }
+
+  .text-responsive-2xl {
+    font-size: clamp(1.25rem, 1.25rem + 0.5vw, 1.5rem);
+  }
+
+  .text-responsive-3xl {
+    font-size: clamp(1.5rem, 1.5rem + 0.8vw, 1.875rem);
+  }
+
+  /* Responsive spacing utilities */
+  .gap-responsive {
+    gap: clamp(0.5rem, 2vw, 1rem);
+  }
+
+  .gap-responsive-lg {
+    gap: clamp(0.75rem, 3vw, 1.5rem);
+  }
+
+  /* Professional component sizing */
+  .btn-responsive {
+    padding: clamp(0.375rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 1rem);
+    font-size: clamp(0.8125rem, 0.8125rem + 0.05vw, 0.875rem);
+    border-radius: clamp(0.375rem, 0.5vw, 0.5rem);
+  }
+
+  .input-responsive {
+    padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem);
+    font-size: clamp(0.8125rem, 0.8125rem + 0.05vw, 0.875rem);
+    border-radius: clamp(0.375rem, 0.5vw, 0.5rem);
+    min-height: clamp(2.5rem, 4vw, 3rem);
+  }
+
+  .card-responsive {
+    padding: clamp(1rem, 3vw, 2rem);
+    border-radius: clamp(0.5rem, 1vw, 1rem);
+  }
+
+  /* High DPI and scaling optimizations */
+  .icon-responsive {
+    width: clamp(1rem, 2vw, 1.5rem);
+    height: clamp(1rem, 2vw, 1.5rem);
+  }
+
+  .icon-responsive-sm {
+    width: clamp(0.75rem, 1.5vw, 1rem);
+    height: clamp(0.75rem, 1.5vw, 1rem);
+  }
+
+  .icon-responsive-lg {
+    width: clamp(1.5rem, 3vw, 2.25rem);
+    height: clamp(1.5rem, 3vw, 2.25rem);
+  }
+
+  /* Professional table scaling */
+  .table-responsive {
+    font-size: clamp(0.8125rem, 0.8125rem + 0.05vw, 0.875rem);
+  }
+
+  .table-responsive th {
+    padding: clamp(0.5rem, 1.5vw, 0.875rem) clamp(0.75rem, 2vw, 1rem);
+    font-size: clamp(0.75rem, 0.75rem + 0.05vw, 0.8125rem);
+  }
+
+  .table-responsive td {
+    padding: clamp(0.75rem, 2vw, 1rem) clamp(0.75rem, 2vw, 1rem);
+    font-size: clamp(0.8125rem, 0.8125rem + 0.05vw, 0.875rem);
+  }
+
+  /* Better form scaling */
+  .form-responsive label {
+    font-size: clamp(0.8125rem, 0.8125rem + 0.05vw, 0.875rem);
+    margin-bottom: clamp(0.25rem, 0.5vw, 0.375rem);
+  }
+
+  .form-responsive input,
+  .form-responsive select,
+  .form-responsive textarea {
+    padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem);
+    font-size: clamp(0.8125rem, 0.8125rem + 0.05vw, 0.875rem);
+    border-radius: clamp(0.375rem, 0.5vw, 0.5rem);
+    min-height: clamp(2.5rem, 4vw, 3rem);
+  }
+
+  /* Enhanced modals and dialogs */
+  .modal-responsive {
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border-radius: clamp(0.75rem, 1.5vw, 1.25rem);
+    max-width: min(90vw, 48rem);
+    max-height: min(90vh, 48rem);
+  }
+
+  /* Improved scroll areas */
+  .scroll-area-responsive {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
+  }
+
+  .scroll-area-responsive::-webkit-scrollbar {
+    width: clamp(0.25rem, 0.5vw, 0.375rem);
+    height: clamp(0.25rem, 0.5vw, 0.375rem);
+  }
+
+  /* Prevent layout shift and improve performance */
+  .no-layout-shift {
+    contain: layout style;
+  }
+
+  .gpu-optimized {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* Ultra-wide display optimizations */
+  @media (min-width: 1920px) {
+    .container-fluid {
+      max-width: min(95vw, 120rem);
+    }
+
+    body {
+      font-size: clamp(0.9375rem, 0.9375rem + 0.025vw, 1rem);
+    }
+  }
+
+  /* 4K display optimizations */
+  @media (min-width: 2560px) {
+    .container-fluid {
+      max-width: min(90vw, 140rem);
+    }
+
+    body {
+      font-size: clamp(1rem, 1rem + 0.015vw, 1.0625rem);
+    }
+  }
+
+  /* Compact card styling */
+  .compact-card {
+    @apply p-2 rounded-lg border border-blue-900/30 bg-[#0a1033]/90;
+  }
+
+  /* Compact form elements */
+  .form-label {
+    @apply text-xs font-medium text-gray-300 mb-1;
+  }
+
+  .form-input {
+    @apply h-8 text-sm px-2 bg-[#0d1541]/70 border-blue-900/50;
+  }
+
+  /* Scrollbar classes */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-thumb-blue-600\/20 {
+    scrollbar-color: rgba(37, 99, 235, 0.2) transparent;
+  }
+
+  .scrollbar-track-blue-900\/10 {
+    scrollbar-track-color: rgba(30, 58, 138, 0.1);
+  }
+
+  /* New utility classes for app-specific use cases */
+  .overflow-x-auto-no-scrollbar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .overflow-x-auto-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Custom Toast Styles for Better Visibility */
+  .toaster {
+    z-index: 9999 !important;
+    pointer-events: none;
+  }
+
+  .toaster>* {
+    pointer-events: auto;
+  }
+
+  /* Enhanced toast styling */
+  [data-sonner-toaster] {
+    position: fixed !important;
+    top: 20px !important;
+    z-index: 9999 !important;
+  }
+
+  [data-sonner-toaster] [data-sonner-toast] {
+    animation: slideInFromTop 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    margin-bottom: 8px !important;
+    min-width: 400px !important;
+    max-width: 600px !important;
+  }
+
+  [data-sonner-toaster] [data-sonner-toast][data-type="success"] {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95)) !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    color: rgb(240, 253, 250) !important;
+    box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.1), 0 10px 10px -5px rgba(16, 185, 129, 0.04) !important;
+  }
+
+  [data-sonner-toaster] [data-sonner-toast][data-type="error"] {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95)) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    color: rgb(254, 242, 242) !important;
+    box-shadow: 0 20px 25px -5px rgba(239, 68, 68, 0.1), 0 10px 10px -5px rgba(239, 68, 68, 0.04) !important;
+  }
+
+  [data-sonner-toaster] [data-sonner-toast][data-type="info"] {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95)) !important;
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    color: rgb(239, 246, 255) !important;
+    box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.1), 0 10px 10px -5px rgba(59, 130, 246, 0.04) !important;
+  }
+
+  [data-sonner-toaster] [data-sonner-toast][data-type="warning"] {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(217, 119, 6, 0.95)) !important;
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+    color: rgb(255, 251, 235) !important;
+    box-shadow: 0 20px 25px -5px rgba(245, 158, 11, 0.1), 0 10px 10px -5px rgba(245, 158, 11, 0.04) !important;
+  }
+
+  /* Toast title styling */
+  [data-sonner-toaster] [data-sonner-toast] [data-title] {
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Toast description styling */
+  [data-sonner-toaster] [data-sonner-toast] [data-description] {
+    font-size: 14px !important;
+    opacity: 0.9 !important;
+    margin-top: 4px !important;
+  }
+
+  /* Close button styling */
+  [data-sonner-toaster] [data-sonner-toast] [data-close-button] {
+    opacity: 0.7 !important;
+    transition: opacity 0.2s !important;
+  }
+
+  [data-sonner-toaster] [data-sonner-toast] [data-close-button]:hover {
+    opacity: 1 !important;
+  }
+
+  /* Auto-adapting theme classes */
+  .theme-card {
+    @apply bg-white border-blue-200 dark:bg-[#0a1033] dark:border-blue-900/30;
+  }
+
+  .theme-card-secondary {
+    @apply bg-blue-50 border-blue-300 dark:bg-[#0f1642] dark:border-blue-900/30;
+  }
+
+  .theme-text {
+    @apply text-blue-900 dark:text-blue-100;
+  }
+
+  .theme-text-muted {
+    @apply text-blue-600 dark:text-blue-400;
+  }
+
+  .theme-input {
+    @apply bg-blue-50 border-blue-200 text-blue-900 placeholder:text-blue-500 focus:border-blue-500 focus:ring-blue-500 dark:bg-[#081029] dark:border-blue-900/50 dark:text-white dark:placeholder:text-blue-300/50 dark:focus:border-blue-500/50;
+  }
+
+  .theme-select {
+    @apply bg-blue-50 border-blue-200 text-blue-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-[#22306e] dark:text-blue-100 dark:border-blue-900/40 dark:focus:ring-blue-500 dark:focus:border-blue-500;
+  }
+
+  .theme-dialog {
+    @apply bg-white border-blue-200 dark:bg-[#1e2a4a] dark:border-blue-900/40;
+  }
+
+  .theme-tooltip {
+    @apply bg-white border-blue-200 text-blue-900 dark:bg-[#0a1033]/90 dark:border-blue-900/50 dark:text-blue-100;
+  }
+
+  /* Enhanced light theme specific utilities */
+  .light-bg-primary {
+    @apply bg-white text-blue-900 border-blue-200;
+  }
+
+  .light-bg-secondary {
+    @apply bg-blue-50 text-blue-800 border-blue-200;
+  }
+
+  .light-card {
+    @apply bg-white text-blue-900 border-blue-200 shadow-sm;
+  }
+
+  .light-card-header {
+    @apply bg-blue-50 text-blue-900 border-b border-blue-200;
+  }
+
+  .light-text-primary {
+    @apply text-blue-900;
+  }
+
+  .light-text-secondary {
+    @apply text-blue-600;
+  }
+
+  .light-text-muted {
+    @apply text-blue-500;
+  }
+
+  .light-border {
+    @apply border-blue-200;
+  }
+
+  .light-hover {
+    @apply hover:bg-blue-50;
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Step form animations */
+.animation-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0.5;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Modern calendar styling for date pickers */
+.react-calendar {
+  width: 100%;
+  background-color: transparent;
+  color: white;
+  font-size: 0.875rem;
+  border: none;
+}
+
+.react-calendar__navigation {
+  display: flex;
+  margin-bottom: 0.5rem;
+}
+
+.react-calendar__navigation button {
+  background: none;
+  border: 0;
+  color: white;
+}
+
+.react-calendar__navigation button:disabled {
+  opacity: 0.3;
+}
+
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 6px;
+}
+
+.react-calendar__month-view__weekdays {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(148, 163, 184, 0.8);
+  margin-bottom: 0.25rem;
+}
+
+.react-calendar__month-view__weekdays__weekday {
+  padding: 0.25rem;
+}
+
+.react-calendar__month-view__weekdays__weekday abbr {
+  text-decoration: none;
+}
+
+.react-calendar__tile {
+  padding: 0.35rem;
+  text-align: center;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  margin: 1px;
+}
+
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: white;
+}
+
+.react-calendar__tile--active {
+  background-color: rgba(59, 130, 246, 0.8) !important;
+  color: white !important;
+  font-weight: 500;
+}
+
+.react-calendar__tile--now {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: white;
+  font-weight: 500;
+}
+
+.react-calendar__month-view__days__day--weekend {
+  color: rgba(248, 113, 113, 0.9);
+}
+
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.custom-calendar .react-calendar__tile--active {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+/* Dialog and modal styling improvements */
+.create-document-dialog {
+  max-width: 550px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Button transitions */
+button {
+  transition: all 0.2s ease;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes pulsate {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.85;
+  }
+}
+
+/* Additional button animations */
+@keyframes glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.7);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}

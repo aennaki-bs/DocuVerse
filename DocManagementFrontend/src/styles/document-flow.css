@@ -1,0 +1,87 @@
+/* Document Flow Mind Map Styles */
+
+.flow-node {
+    position: relative;
+    transition: all 0.3s;
+}
+
+.flow-node:hover {
+    transform: translateY(-2px);
+}
+
+/* Connector line styles */
+.connector {
+    position: absolute;
+    background: linear-gradient(to bottom, rgba(59, 130, 246, 0.6), rgba(59, 130, 246, 0.2));
+}
+
+.connector-vertical {
+    width: 2px;
+    height: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.connector-horizontal {
+    height: 2px;
+    width: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Transitions */
+.flow-status-container {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Pulse effect for current node */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+.flow-node-pulse {
+    animation: pulse 2s infinite;
+}
+
+/* Status group expand/collapse animation */
+.flow-group {
+    transition: all 0.3s ease;
+}
+
+/* Mind map layout container */
+.mind-map-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 600px;
+    padding: 2rem 1rem;
+    position: relative;
+    overflow-x: auto;
+}
+
+/* Lines connecting nodes */
+.flow-line {
+    position: absolute;
+    background-color: rgba(59, 130, 246, 0.3);
+    z-index: 0;
+}
+
+/* Status node hover effect */
+.status-node {
+    transition: all 0.2s ease-in-out;
+}
+
+.status-node:hover {
+    transform: scale(1.03);
+    z-index: 10;
+}

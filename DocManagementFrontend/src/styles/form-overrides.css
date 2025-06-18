@@ -1,0 +1,40 @@
+/* Form control focus overrides */
+:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+    border-color: #3b82f6 !important;
+}
+
+/* Select specific overrides */
+[data-radix-select-trigger]:focus {
+    outline: none !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+    ring-color: #3b82f6 !important;
+}
+
+/* Remove red border on focus for all inputs */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus,
+[data-radix-select-trigger]:focus {
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Ensure textarea never has red borders */
+textarea {
+    border-color: rgb(30 58 138 / 0.8) !important;
+}
+
+/* Dark theme specific overrides */
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus,
+.dark button:focus,
+.dark [data-radix-select-trigger]:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+}

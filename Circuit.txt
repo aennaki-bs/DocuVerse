@@ -1,0 +1,56 @@
+Circuit : CV/ Circuit de vente
+          Active
+
+
+Circuit Status:
+  
+1-Devis vente --Status initial
+2-Commande vente
+3-Commande confirmée
+4-Commande livrée
+5-Commande facturée
+6-Commande cloturée --status final
+7-Document annulée --status flexible
+8-Document imprimee  --status flexible
+
+
+Circuit Steps
+
+
+E1: 1-->2     Approbation(Bool)    Utilisateur   Groupe Utilisateur  Regle approbation Groupe
+E2: 2-->3              True               Ahmed           GR1                3 TYpe approbation 
+E3: 3-->4 
+E4: 4-->5
+E5: 5-->6
+E6: 1-->7
+E7: 2-->7
+E8: 3-->6
+E9: 3-->8
+E10: 4-->8
+E11: 5-->8
+E11: 6-->8
+
+
+Circuit Entries
+
+
+
+utilisateurs
+
+
+Ahmed
+Marouan
+Hamza
+Admin
+
+Groupe utilisateur
+
+GR1--AHemd-Mourane
+GR2--Hamza--Admin
+GR3--AHmed-Mourane--Admin
+
+
+Ecritures Approbation
+
+1 + No Doc + Utilisateur  + Approbateur + Date + Heur + status(Open/Accepted/Rejected)
+
