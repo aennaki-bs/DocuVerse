@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import SousLignesList from "../SousLignesList";
+import AddLineToErpButton from "../AddLineToErpButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 
@@ -139,6 +140,21 @@ const LigneItem = ({
                 transition={{ duration: 0.2 }}
                 className="flex items-center gap-1"
               >
+                {/* Add to ERP Button - Always visible for admins and users */}
+                <div onClick={(e) => e.stopPropagation()}>
+                  <AddLineToErpButton
+                    ligneId={ligne.id}
+                    ligneTitle={ligne.title}
+                    documentErpCode={document.erpDocumentCode}
+                    lineErpCode={ligne.erpLineCode}
+                    onSuccess={(erpLineCode) => {
+                      // Update the ligne object to reflect the change
+                      ligne.erpLineCode = erpLineCode;
+                    }}
+                    className="h-8"
+                  />
+                </div>
+
                 {canManageDocuments && (
                   <>
                     <Button
@@ -286,19 +302,19 @@ const LigneItem = ({
                                   {ligne.item.description}
                                 </div>
                               </div>
-                              {ligne.item.unite && (
+                              {ligne.unit && (
                                 <div>
                                   <div className="text-xs text-emerald-400 mb-1">Unit</div>
                                   <div className="text-sm font-medium text-emerald-300">
-                                    {ligne.item.unite}
+                                    {ligne.unit.code}
                                   </div>
                                 </div>
                               )}
-                              {ligne.item.uniteCodeNavigation && (
+                              {ligne.unit && (
                                 <div>
                                   <div className="text-xs text-emerald-400 mb-1">Unit Description</div>
                                   <div className="text-sm font-medium text-emerald-300">
-                                    {ligne.item.uniteCodeNavigation.description}
+                                    {ligne.unit.description}
                                   </div>
                                 </div>
                               )}

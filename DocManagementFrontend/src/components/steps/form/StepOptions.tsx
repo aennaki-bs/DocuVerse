@@ -48,14 +48,10 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 export const StepOptions = () => {
-  const { formData, setFormData, registerStepForm } = useStepForm();
+  const { formData, setFormData, registerStepForm, isEditMode } = useStepForm();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-
-  // Log the initial form data for debugging
-  useEffect(() => {
-    console.log("StepOptions mounted with formData:", formData);
-  }, []);
 
   // Determine initial approvalType from formData
   const initialApprovalType = formData.approvalUserId
@@ -64,10 +60,7 @@ export const StepOptions = () => {
     ? "group"
     : null;
 
-  console.log("Initial approval type:", initialApprovalType);
-  console.log("Initial approvalUserId:", formData.approvalUserId);
-  console.log("Initial approvalGroupId:", formData.approvalGroupId);
-
+  // Initialize form BEFORE any useEffect that depends on it
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -78,6 +71,22 @@ export const StepOptions = () => {
     },
     mode: "onChange",
   });
+
+  // Sync form values with context data when formData changes (especially in edit mode)
+  useEffect(() => {
+    if (isEditMode && formData.requiresApproval) {
+      form.setValue("requiresApproval", formData.requiresApproval);
+      if (formData.approvalType) {
+        form.setValue("approvalType", formData.approvalType);
+      }
+      if (formData.approvalUserId) {
+        form.setValue("approvalUserId", formData.approvalUserId);
+      }
+      if (formData.approvalGroupId) {
+        form.setValue("approvalGroupId", formData.approvalGroupId);
+      }
+    }
+  }, [formData, isEditMode, form]);
 
   // Register this form with the parent provider for validation
   useEffect(() => {

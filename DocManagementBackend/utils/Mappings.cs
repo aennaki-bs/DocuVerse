@@ -96,6 +96,17 @@ namespace DocManagementBackend.Mappings
                 UpdatedAt = l.Location.UpdatedAt
             },
             
+            // Unit of measure reference (only for Item types)
+            UnitCode = l.UnitCode,
+            Unit = l.Unit == null ? null : new UniteCodeDto
+            {
+                Code = l.Unit.Code,
+                Description = l.Unit.Description,
+                CreatedAt = l.Unit.CreatedAt,
+                UpdatedAt = l.Unit.UpdatedAt,
+                ItemsCount = l.Unit.Items.Count()
+            },
+            
             // Pricing fields
             Quantity = l.Quantity,
             PriceHT = l.PriceHT,
@@ -107,6 +118,9 @@ namespace DocManagementBackend.Mappings
             AmountHT = l.AmountHT,
             AmountVAT = l.AmountVAT,
             AmountTTC = l.AmountTTC,
+            
+            // ERP Integration field
+            ERPLineCode = l.ERPLineCode,
             
             CreatedAt = l.CreatedAt,
             UpdatedAt = l.UpdatedAt,
@@ -226,6 +240,17 @@ namespace DocManagementBackend.Mappings
                     Description = s.Ligne.Location.Description,
                     CreatedAt = s.Ligne.Location.CreatedAt,
                     UpdatedAt = s.Ligne.Location.UpdatedAt
+                },
+                
+                // Unit of measure reference (only for Item types)
+                UnitCode = s.Ligne.UnitCode,
+                Unit = s.Ligne.Unit == null ? null : new UniteCodeDto
+                {
+                    Code = s.Ligne.Unit.Code,
+                    Description = s.Ligne.Unit.Description,
+                    CreatedAt = s.Ligne.Unit.CreatedAt,
+                    UpdatedAt = s.Ligne.Unit.UpdatedAt,
+                    ItemsCount = s.Ligne.Unit.Items.Count()
                 },
                 
                 // Pricing fields

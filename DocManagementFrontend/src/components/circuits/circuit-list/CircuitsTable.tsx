@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import CircuitActivationDialog from "../CircuitActivationDialog";
+import CircuitDeactivationDialog from "../CircuitDeactivationDialog";
 import { usePagination } from "@/hooks/usePagination";
 import SmartPagination from "@/components/shared/SmartPagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -241,8 +242,13 @@ const CircuitTableRow = ({
           ) : (
             <Switch
               checked={circuit.isActive}
-              onCheckedChange={() => {}}
-              onClick={(e) => onToggleActive(circuit, e)}
+              onCheckedChange={(checked) => {
+                // Create a synthetic event to match the existing function signature
+                const syntheticEvent = {
+                  stopPropagation: () => {},
+                } as React.MouseEvent;
+                onToggleActive(circuit, syntheticEvent);
+              }}
               className={
                 circuit.isActive ? "data-[state=checked]:bg-green-500" : ""
               }
@@ -291,8 +297,6 @@ export function CircuitsTable({
 }: CircuitsTableProps) {
   const navigate = useNavigate();
   const [loadingCircuits, setLoadingCircuits] = useState<number[]>([]);
-  const [circuitToDeactivate, setCircuitToDeactivate] =
-    useState<Circuit | null>(null);
 
   // Navigate to the circuit statuses page when clicking on a circuit
   const handleCircuitClick = (circuitId: number) => {
@@ -300,6 +304,9 @@ export function CircuitsTable({
   };
 
   const [circuitToActivate, setCircuitToActivate] = useState<Circuit | null>(
+    null
+  );
+  const [circuitToDeactivate, setCircuitToDeactivate] = useState<Circuit | null>(
     null
   );
 
@@ -355,33 +362,8 @@ export function CircuitsTable({
       return;
     }
 
-    // For deactivation, check if circuit has documents first
-    setLoadingCircuits((prev) => [...prev, circuit.id]);
-
-    try {
-      // Check if circuit is used by any documents
-      const usageInfo = await circuitService.checkCircuitUsage(circuit.id);
-
-      if (usageInfo.isUsed) {
-        // If circuit has documents, show error and don't allow deactivation
-        toast.error(
-          `Cannot deactivate circuit: It is currently assigned to ${
-            usageInfo.documentCount > 1 ? "documents" : "a document"
-          }.`
-        );
-        setLoadingCircuits((prev) => prev.filter((id) => id !== circuit.id));
-        return;
-      }
-
-      // Show confirmation dialog
-      setCircuitToDeactivate(circuit);
-      setLoadingCircuits((prev) => prev.filter((id) => id !== circuit.id));
-    } catch (error: any) {
-      const errorMessage =
-        error?.message || "An error occurred while checking circuit usage";
-      toast.error(errorMessage);
-      setLoadingCircuits((prev) => prev.filter((id) => id !== circuit.id));
-    }
+    // For deactivation, show the deactivation dialog
+    setCircuitToDeactivate(circuit);
   };
 
   const performToggle = async (circuit: Circuit) => {
@@ -390,9 +372,7 @@ export function CircuitsTable({
     try {
       // Toggle activation
       await circuitService.toggleCircuitActivation(circuit);
-      toast.success(
-        `Circuit ${circuit.isActive ? "deactivated" : "activated"} successfully`
-      );
+      toast.success("Circuit activated successfully");
 
       // Refresh the list
       if (refetch) {
@@ -400,11 +380,31 @@ export function CircuitsTable({
       }
     } catch (error: any) {
       const errorMessage =
-        error?.message || "An error occurred while updating the circuit";
+        error?.message || "Failed to activate circuit";
       toast.error(errorMessage);
     } finally {
       setLoadingCircuits((prev) => prev.filter((id) => id !== circuit.id));
-      setCircuitToDeactivate(null);
+    }
+  };
+
+  const performDeactivation = async (circuit: Circuit) => {
+    setLoadingCircuits((prev) => [...prev, circuit.id]);
+
+    try {
+      // Toggle deactivation
+      await circuitService.toggleCircuitActivation(circuit);
+      toast.success("Circuit deactivated successfully");
+
+      // Refresh the list
+      if (refetch) {
+        await refetch();
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error?.message || "Failed to deactivate circuit";
+      toast.error(errorMessage);
+    } finally {
+      setLoadingCircuits((prev) => prev.filter((id) => id !== circuit.id));
     }
   };
 
@@ -416,17 +416,30 @@ export function CircuitsTable({
   return (
     <div className="space-y-4">
       {/* Circuit Activation Dialog */}
-      <CircuitActivationDialog
-        isOpen={circuitToActivate !== null}
-        onClose={() => setCircuitToActivate(null)}
-        circuit={circuitToActivate as Circuit}
-        onActivate={() => {
-          if (circuitToActivate) {
+      {circuitToActivate && (
+        <CircuitActivationDialog
+          isOpen={true}
+          onClose={() => setCircuitToActivate(null)}
+          circuit={circuitToActivate}
+          onActivate={() => {
             performToggle(circuitToActivate);
             setCircuitToActivate(null);
-          }
-        }}
-      />
+          }}
+        />
+      )}
+
+      {/* Circuit Deactivation Dialog */}
+      {circuitToDeactivate && (
+        <CircuitDeactivationDialog
+          isOpen={true}
+          onClose={() => setCircuitToDeactivate(null)}
+          circuit={circuitToDeactivate}
+          onDeactivate={() => {
+            performDeactivation(circuitToDeactivate);
+            setCircuitToDeactivate(null);
+          }}
+        />
+      )}
 
       {/* Table Container */}
       <>
@@ -481,46 +494,7 @@ export function CircuitsTable({
         onPageSizeChange={handlePageSizeChange}
       />
 
-      {/* Deactivation confirmation dialog */}
-      <AlertDialog
-        open={circuitToDeactivate !== null}
-        onOpenChange={(open) => !open && setCircuitToDeactivate(null)}
-      >
-        <AlertDialogContent className="bg-[#0a1033] border-blue-900/50 text-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Circuit</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-300">
-              Are you sure you want to deactivate this circuit? This will
-              prevent new documents from being assigned to it.
-              <div className="mt-2 p-2 bg-blue-900/20 border border-blue-900/30 rounded-md flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-green-400" />
-                <span className="text-sm text-green-300">
-                  Verification complete: This circuit is not currently assigned
-                  to any documents.
-                </span>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent border-blue-900/50 text-gray-300 hover:bg-blue-900/20">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                if (circuitToDeactivate) {
-                  performToggle(circuitToDeactivate);
-                }
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {loadingCircuits.includes(circuitToDeactivate?.id || 0)
-                ? "Deactivating..."
-                : "Deactivate"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
     </div>
   );
 }

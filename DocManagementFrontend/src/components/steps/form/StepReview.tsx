@@ -39,7 +39,7 @@ interface ApprovalGroup {
   name: string;
   comment?: string;
   ruleType: string;
-  approvers?: { userId: number; username: string }[];
+  approvers?: { userId: number; username: string; orderIndex?: number }[];
 }
 
 export const StepReview = () => {
@@ -50,6 +50,7 @@ export const StepReview = () => {
   const [selectedApprover, setSelectedApprover] = useState<Approvator | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<ApprovalGroup | null>(null);
   const [isLoadingApproval, setIsLoadingApproval] = useState(false);
+  const [isGroupMembersExpanded, setIsGroupMembersExpanded] = useState(false);
 
   // Register this form with the parent provider for validation
   useEffect(() => {
@@ -181,18 +182,39 @@ export const StepReview = () => {
                   </div>
                   {selectedGroup.approvers && selectedGroup.approvers.length > 0 && (
                     <div className="mt-1 pt-1 border-t border-blue-900/20">
-                      <div className="text-xs text-gray-400 mb-1">Members:</div>
+                      <div className="text-xs text-gray-400 mb-1">
+                        {selectedGroup.ruleType === 'Sequential' ? 'Approval sequence:' : 'Members:'}
+                      </div>
                       <div className="space-y-0.5">
-                        {selectedGroup.approvers.slice(0, 3).map((approver) => (
+                        {(isGroupMembersExpanded 
+                          ? selectedGroup.approvers 
+                          : selectedGroup.approvers.slice(0, 3)
+                        ).map((approver, index) => (
                           <div key={approver.userId} className="flex items-center text-xs text-blue-300">
-                            <User className="h-2.5 w-2.5 text-blue-400 mr-1" />
+                            {selectedGroup.ruleType === 'Sequential' ? (
+                              <div className="h-4 w-4 rounded-full bg-purple-800/70 flex items-center justify-center text-xs text-purple-200 mr-1 font-mono">
+                                {(approver.orderIndex ?? index) + 1}
+                              </div>
+                            ) : (
+                              <User className="h-2.5 w-2.5 text-blue-400 mr-1" />
+                            )}
                             {approver.username}
                           </div>
                         ))}
                         {selectedGroup.approvers.length > 3 && (
-                          <div className="text-xs text-gray-400">
-                            +{selectedGroup.approvers.length - 3} more members
-                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsGroupMembersExpanded(!isGroupMembersExpanded);
+                            }}
+                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
+                          >
+                            {isGroupMembersExpanded 
+                              ? "Show less" 
+                              : `+${selectedGroup.approvers.length - 3} more members`
+                            }
+                          </button>
                         )}
                       </div>
                     </div>

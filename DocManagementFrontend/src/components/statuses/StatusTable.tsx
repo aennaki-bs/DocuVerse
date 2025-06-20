@@ -132,7 +132,7 @@ export function StatusTable({
                         )}
                       >
                         {onSelectStatus && (
-                          <TableCell>
+                          <TableCell className="w-[50px]">
                             <Checkbox
                               checked={selectedStatusIds.includes(
                                 status.statusId
@@ -145,10 +145,10 @@ export function StatusTable({
                             />
                           </TableCell>
                         )}
-                        <TableCell className="font-mono text-xs text-blue-300">
+                        <TableCell className="w-[150px] font-mono text-xs text-blue-300">
                           {status.statusKey}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="w-[200px]">
                           <div className="flex flex-col">
                             <span className="font-medium text-blue-100">
                               {status.title}
@@ -160,7 +160,7 @@ export function StatusTable({
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="w-[300px]">
                           <div className="flex flex-wrap gap-1">
                             {status.isInitial && (
                               <Badge
@@ -198,7 +198,7 @@ export function StatusTable({
                               )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="w-[100px] text-right">
                           <div className="flex items-center justify-end gap-1">
                             {isCircuitActive ? (
                               <TooltipProvider>

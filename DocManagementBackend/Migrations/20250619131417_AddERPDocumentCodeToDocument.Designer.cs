@@ -4,6 +4,7 @@ using DocManagementBackend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocManagementBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250619131417_AddERPDocumentCodeToDocument")]
+    partial class AddERPDocumentCodeToDocument
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -803,7 +806,7 @@ namespace DocManagementBackend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("DiscountAmount")
+                    b.Property<decimal?>("DiscountAmount")
                         .HasColumnType("decimal(18,4)");
 
                     b.Property<decimal>("DiscountPercentage")
@@ -831,9 +834,6 @@ namespace DocManagementBackend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<decimal>("OriginalPriceHT")
-                        .HasColumnType("decimal(18,4)");
-
                     b.Property<decimal>("PriceHT")
                         .HasColumnType("decimal(18,4)");
 
@@ -853,10 +853,6 @@ namespace DocManagementBackend.Migrations
                     b.Property<int?>("Type")
                         .HasColumnType("int");
 
-                    b.Property<string>("UnitCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -874,8 +870,6 @@ namespace DocManagementBackend.Migrations
                     b.HasIndex("LignesElementTypeId");
 
                     b.HasIndex("LocationCode");
-
-                    b.HasIndex("UnitCode");
 
                     b.ToTable("Lignes");
                 });
@@ -1846,17 +1840,11 @@ namespace DocManagementBackend.Migrations
                         .WithMany()
                         .HasForeignKey("LocationCode");
 
-                    b.HasOne("DocManagementBackend.Models.UnitOfMeasure", "Unit")
-                        .WithMany()
-                        .HasForeignKey("UnitCode");
-
                     b.Navigation("Document");
 
                     b.Navigation("LignesElementType");
 
                     b.Navigation("Location");
-
-                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("DocManagementBackend.Models.LignesElementType", b =>

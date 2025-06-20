@@ -26,7 +26,7 @@ export interface ApprovalGroup {
   comment?: string;
   stepTitle?: string;
   ruleType: string;
-  approvers?: { userId: number; username: string }[];
+  approvers?: { userId: number; username: string; orderIndex?: number }[];
   createdAt?: string;
   updatedAt?: string;
 }

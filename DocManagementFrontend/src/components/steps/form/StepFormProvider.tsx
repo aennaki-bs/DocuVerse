@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import stepService from "@/services/stepService";
@@ -40,6 +40,7 @@ interface StepFormContextType {
   isSubmitting: boolean;
   isEditMode: boolean;
   stepId?: number;
+  editStep?: Step;
   totalSteps: number;
   validateCurrentStep: () => Promise<boolean>;
   registerStepForm: (stepNumber: number, form: StepFormRegistration) => void;
@@ -97,6 +98,10 @@ export const StepFormProvider: React.FC<StepFormProviderProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormDataState] = useState<StepFormData>(() => {
     if (editStep) {
+      // Map API fields to UI fields for editing
+      const approvalUserId = editStep.approvalUserId || (editStep.approvatorId ? editStep.approvatorId : undefined);
+      const approvalGroupId = editStep.approvalGroupId || editStep.approvatorsGroupId;
+      
       return {
         title: editStep.title,
         descriptif: editStep.descriptif,
@@ -105,13 +110,13 @@ export const StepFormProvider: React.FC<StepFormProviderProps> = ({
         responsibleRoleId: editStep.responsibleRoleId,
         isFinalStep: editStep.isFinalStep,
         requiresApproval: editStep.requiresApproval || false,
-        approvalType: editStep.approvalGroupId
+        approvalType: approvalGroupId
           ? "group"
-          : editStep.approvalUserId
+          : approvalUserId
           ? "user"
           : undefined,
-        approvalUserId: editStep.approvalUserId,
-        approvalGroupId: editStep.approvalGroupId,
+        approvalUserId: approvalUserId,
+        approvalGroupId: approvalGroupId,
         currentStatusId: editStep.currentStatusId,
         nextStatusId: editStep.nextStatusId,
       };
@@ -140,6 +145,59 @@ export const StepFormProvider: React.FC<StepFormProviderProps> = ({
   const totalSteps = 4;
 
   const isEditMode = !!editStep;
+
+  // Load approval configuration for edit mode
+  useEffect(() => {
+    const loadApprovalConfig = async () => {
+      if (editStep && editStep.requiresApproval) {
+        try {
+          const config = await approvalService.getStepApprovalConfig(editStep.id);
+          console.log("Loaded step approval config:", config);
+          
+          if (config) {
+            let approvalUserId = undefined;
+            
+            // If it's a single approver, we need to convert the approvatorId to userId
+            if (config.approvalType === "Single" && config.singleApproverId) {
+              try {
+                // Get all approvators to find the one with matching approvatorId
+                const approvators = await approvalService.getAllApprovators();
+                const matchingApprovator = approvators.find(a => a.id === config.singleApproverId);
+                
+                if (matchingApprovator) {
+                  approvalUserId = matchingApprovator.userId;
+                  console.log("Found matching approvator, userId:", approvalUserId);
+                } else {
+                  console.warn("No approvator found with ID:", config.singleApproverId);
+                }
+              } catch (error) {
+                console.error("Error fetching approvators:", error);
+              }
+            }
+
+            const newFormData = {
+              approvalType: config.approvalType === "Single" ? "user" : "group",
+              approvalUserId: approvalUserId,
+              approvalGroupId: config.approvatorsGroupId,
+            };
+            
+            console.log("Updating form data with:", newFormData);
+            
+            // Update form data with proper approval configuration
+            setFormDataState(prev => ({
+              ...prev,
+              ...newFormData,
+            }));
+          }
+        } catch (error) {
+          console.error("Error loading approval configuration:", error);
+          // Continue with the basic initialization if config loading fails
+        }
+      }
+    };
+
+    loadApprovalConfig();
+  }, [editStep]);
 
   const setFormData = (data: Partial<StepFormData>) => {
     console.log("Updating form data:", data);
@@ -607,6 +665,7 @@ export const StepFormProvider: React.FC<StepFormProviderProps> = ({
         isSubmitting,
         isEditMode,
         stepId: editStep?.id,
+        editStep,
         totalSteps,
         validateCurrentStep,
         registerStepForm,

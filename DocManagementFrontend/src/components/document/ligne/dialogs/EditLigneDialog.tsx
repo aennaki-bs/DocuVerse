@@ -12,6 +12,7 @@ import {
   GeneralAccountsSimple,
 } from "@/models/lineElements";
 import { LocationSimpleDto } from "@/models/location";
+import { calculateLigneAmounts } from "@/utils/ligneCalculations";
 import {
   Dialog,
   DialogContent,
@@ -125,29 +126,17 @@ const EditLigneDialog = ({
     }
   }, [ligne]);
 
-  // Calculate amounts
+  // Calculate amounts using centralized utility
   const calculateAmounts = () => {
-    const { quantity, priceHT, discountPercentage, discountAmount, vatPercentage, useFixedDiscount } = formValues;
-    
-    // Calculate discount amount based on the formula: Amount Discount = % Discount * (Price HT * Quantity)
-    let calculatedDiscountAmount: number;
-    if (useFixedDiscount && discountAmount) {
-      calculatedDiscountAmount = discountAmount;
-    } else {
-      calculatedDiscountAmount = discountPercentage * (priceHT * quantity);
-    }
-    
-    let amountHT: number;
-    if (useFixedDiscount && discountAmount) {
-      amountHT = priceHT * quantity - discountAmount;
-    } else {
-      amountHT = priceHT * quantity * (1 - discountPercentage);
-    }
-    
-    const amountVAT = amountHT * vatPercentage;
-    const amountTTC = amountHT + amountVAT;
-    
-    return { amountHT, amountVAT, amountTTC, discountAmount: calculatedDiscountAmount };
+    return calculateLigneAmounts(
+      formValues.quantity,
+      formValues.priceHT,
+      formValues.discountPercentage,
+      formValues.discountAmount,
+      formValues.vatPercentage,
+      formValues.useFixedDiscount
+      // Note: EditLigneDialog doesn't handle unit conversion yet
+    );
   };
 
   const handleFieldChange = (key: keyof FormValues, value: any) => {
@@ -160,6 +149,9 @@ const EditLigneDialog = ({
     try {
       setIsSubmitting(true);
       
+      // Calculate amounts to send to backend
+      const calculatedAmounts = calculateAmounts();
+      
       const updateRequest: UpdateLigneRequest = {
         ligneKey: formValues.ligneKey,
         title: formValues.title,
@@ -168,10 +160,11 @@ const EditLigneDialog = ({
         selectedElementCode: undefined,
         locationCode: formValues.locationCode,
         quantity: formValues.quantity,
-        priceHT: formValues.priceHT,
+        priceHT: calculatedAmounts.adjustedPriceHT, // Send adjusted price (unit price * ratio)
         discountPercentage: formValues.discountPercentage,
-        discountAmount: formValues.useFixedDiscount ? formValues.discountAmount : undefined,
+        discountAmount: calculatedAmounts.discountAmount, // Send calculated discount amount
         vatPercentage: formValues.vatPercentage,
+        originalPriceHT: formValues.priceHT, // Send original price for reference
       };
 
       await documentService.updateLigne(ligne.id, updateRequest);

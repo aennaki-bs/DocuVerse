@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Save } from "lucide-react";
+import { Save, Archive, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -211,6 +212,8 @@ const DocumentEditForm = ({
     );
   }
 
+  const isArchived = !!document.erpDocumentCode;
+
   return (
     <Card className="bg-[#0a1033] border border-blue-900/30 shadow-lg">
       <CardHeader>
@@ -219,6 +222,15 @@ const DocumentEditForm = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
+        {isArchived && (
+          <Alert className="mb-6 bg-orange-900/20 border-orange-700/30 text-orange-200">
+            <Archive className="h-4 w-4" />
+            <AlertDescription>
+              This document has been archived to the ERP system (Code: {document.erpDocumentCode}) and cannot be modified.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="space-y-6">
           <div className="space-y-3">
             <Label
@@ -233,6 +245,7 @@ const DocumentEditForm = ({
               onChange={handleTitleChange}
               placeholder="Enter document title"
               className="h-12 text-base bg-[#111633] border-blue-900/30 text-white"
+              disabled={isArchived}
             />
             {editedFields.title && (
               <p className="text-xs text-blue-400">
@@ -254,6 +267,7 @@ const DocumentEditForm = ({
               value={accountingDate}
               onChange={handleAccountingDateChange}
               className="h-12 text-base bg-[#111633] border-blue-900/30 text-white"
+              disabled={isArchived}
             />
             {editedFields.accountingDate && (
               <p className="text-xs text-blue-400">
@@ -276,6 +290,7 @@ const DocumentEditForm = ({
               placeholder="Enter document content"
               rows={10}
               className="text-base resize-y bg-[#111633] border-blue-900/30 text-white"
+              disabled={isArchived}
             />
             {editedFields.content && (
               <p className="text-xs text-blue-400">
@@ -297,6 +312,7 @@ const DocumentEditForm = ({
               onChange={handleDocumentExterneChange}
               placeholder="Enter document externe"
               className="h-12 text-base bg-[#111633] border-blue-900/30 text-white"
+              disabled={isArchived}
             />
             {editedFields.documentExterne && (
               <p className="text-xs text-blue-400">
@@ -317,18 +333,21 @@ const DocumentEditForm = ({
             <Button
               onClick={handleSubmit}
               disabled={
+                isArchived ||
                 isSubmitting ||
                 !Object.values(editedFields).some((edited) => edited)
               }
               size="lg"
               className={`px-6 ${
-                Object.values(editedFields).some((edited) => edited)
+                isArchived
+                  ? "bg-gray-600/50 hover:bg-gray-700/50 cursor-not-allowed"
+                  : Object.values(editedFields).some((edited) => edited)
                   ? "bg-green-600 hover:bg-green-700"
                   : "bg-blue-600/50 hover:bg-blue-700/50 cursor-not-allowed"
               }`}
             >
               <Save className="mr-2 h-5 w-5" />
-              {isSubmitting ? "Saving..." : "Save Changes"}
+              {isArchived ? "Document Archived" : isSubmitting ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>

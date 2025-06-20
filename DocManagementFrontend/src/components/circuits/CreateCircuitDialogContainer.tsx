@@ -44,20 +44,20 @@ export default function CreateCircuitDialogContainer({
 
   const handleNext = () => {
     if (step === 1) {
-      if (!formValues.title || formValues.title.trim().length < 3) {
-        setErrors({ title: "Title must be at least 3 characters" });
-        return;
-      }
-      setErrors({});
-      setStep(2);
-    } else if (step === 2) {
-      setStep(3);
-    } else if (step === 3) {
       if (!formValues.documentTypeId) {
         setErrors({ documentTypeId: "Document type is required" });
         return;
       }
       setErrors({});
+      setStep(2);
+    } else if (step === 2) {
+      if (!formValues.title || formValues.title.trim().length < 3) {
+        setErrors({ title: "Title must be at least 3 characters" });
+        return;
+      }
+      setErrors({});
+      setStep(3);
+    } else if (step === 3) {
       setStep(4);
     }
   };
@@ -83,13 +83,13 @@ export default function CreateCircuitDialogContainer({
   };
 
   const handleSubmit = async () => {
-    if (!formValues.title || formValues.title.trim().length < 3) {
-      setErrors({ title: "Title must be at least 3 characters" });
+    if (!formValues.documentTypeId) {
+      setErrors({ documentTypeId: "Document type is required" });
       setStep(1);
       return;
     }
-    if (!formValues.documentTypeId) {
-      setErrors({ documentTypeId: "Document type is required" });
+    if (!formValues.title || formValues.title.trim().length < 3) {
+      setErrors({ title: "Title must be at least 3 characters" });
       setStep(2);
       return;
     }
@@ -120,7 +120,7 @@ export default function CreateCircuitDialogContainer({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[550px] p-0 bg-gradient-to-b from-[#1a2c6b] to-[#0a1033] border border-blue-500/30 shadow-[0_0_25px_rgba(59,130,246,0.2)] rounded-xl overflow-hidden">
+      <DialogContent className="sm:max-w-[550px] p-0 bg-gradient-to-b from-[#1a2c6b] to-[#0a1033] border border-blue-500/30 shadow-[0_0_25px_rgba(59,130,246,0.2)] rounded-xl">
         <div className="bg-gradient-to-r from-[#1e3a8a]/50 to-[#0f172a]/50 border-b border-blue-500/20 py-5 px-6">
           <div className="flex items-center gap-3 mb-1.5">
             <div className="bg-blue-500/20 p-1.5 rounded-lg">
@@ -148,7 +148,7 @@ export default function CreateCircuitDialogContainer({
                 1
               </div>
               <span className={step >= 1 ? "text-blue-100" : "text-blue-400"}>
-                Title
+                Type
               </span>
             </div>
             <div className="flex-1 mx-2 mt-4">
@@ -169,7 +169,7 @@ export default function CreateCircuitDialogContainer({
                 2
               </div>
               <span className={step >= 2 ? "text-blue-100" : "text-blue-400"}>
-                Details
+                Title
               </span>
             </div>
             <div className="flex-1 mx-2 mt-4">
@@ -190,7 +190,7 @@ export default function CreateCircuitDialogContainer({
                 3
               </div>
               <span className={step >= 3 ? "text-blue-100" : "text-blue-400"}>
-                Type
+                Details
               </span>
             </div>
             <div className="flex-1 mx-2 mt-4">
@@ -222,28 +222,28 @@ export default function CreateCircuitDialogContainer({
             onSubmit={(e) => e.preventDefault()}
           >
             {step === 1 && (
-              <CreateCircuitStepOne
-                value={formValues.title}
-                onChange={(val) => handleFieldChange("title", val)}
-                error={errors.title}
+              <CreateCircuitStepDocumentType
+                value={formValues.documentTypeId}
+                onChange={handleDocumentTypeChange}
                 disabled={isSubmitting}
                 onNext={handleNext}
                 onCancel={handleClose}
               />
             )}
             {step === 2 && (
-              <CreateCircuitStepTwo
-                value={formValues.descriptif || ""}
-                onChange={(val) => handleFieldChange("descriptif", val)}
+              <CreateCircuitStepOne
+                value={formValues.title}
+                onChange={(val) => handleFieldChange("title", val)}
+                error={errors.title}
                 disabled={isSubmitting}
                 onNext={handleNext}
                 onBack={handleBack}
               />
             )}
             {step === 3 && (
-              <CreateCircuitStepDocumentType
-                value={formValues.documentTypeId}
-                onChange={handleDocumentTypeChange}
+              <CreateCircuitStepTwo
+                value={formValues.descriptif || ""}
+                onChange={(val) => handleFieldChange("descriptif", val)}
                 disabled={isSubmitting}
                 onNext={handleNext}
                 onBack={handleBack}

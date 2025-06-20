@@ -47,7 +47,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export const StepStatusSelection = () => {
-  const { formData, setFormData, registerStepForm } = useStepForm();
+  const { formData, setFormData, registerStepForm, isEditMode, editStep } = useStepForm();
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [isLoadingStatuses, setIsLoadingStatuses] = useState(false);
   const [nextStatusOptions, setNextStatusOptions] = useState<Status[]>([]);
@@ -103,20 +103,43 @@ export const StepStatusSelection = () => {
         if (result && formData.currentStatusId && formData.nextStatusId) {
           setIsCheckingDuplicate(true);
           try {
-            // Use the dedicated service function for consistent checking
-            const exists = await stepService.checkStepExists(
-              formData.circuitId,
-              formData.currentStatusId,
-              formData.nextStatusId
-            );
+            if (isEditMode) {
+              // In edit mode, get all steps and check manually excluding the current step
+              const stepsResponse = await api.get(`/Circuit/${formData.circuitId}`);
+              const circuitData = stepsResponse.data;
+              
+              if (circuitData && circuitData.steps) {
+                const conflictingStep = circuitData.steps.find((step: any) => 
+                  step.id !== editStep?.id && // Exclude the current step being edited
+                  step.currentStatusId === formData.currentStatusId &&
+                  step.nextStatusId === formData.nextStatusId
+                );
+                
+                if (conflictingStep) {
+                  form.setError("nextStatusId", {
+                    type: "manual",
+                    message: "A step with these status transitions already exists",
+                  });
+                  setIsCheckingDuplicate(false);
+                  return false;
+                }
+              }
+            } else {
+              // For new steps, use the existing service function
+              const exists = await stepService.checkStepExists(
+                formData.circuitId,
+                formData.currentStatusId,
+                formData.nextStatusId
+              );
 
-            if (exists) {
-              form.setError("nextStatusId", {
-                type: "manual",
-                message: "A step with these status transitions already exists",
-              });
-              setIsCheckingDuplicate(false);
-              return false;
+              if (exists) {
+                form.setError("nextStatusId", {
+                  type: "manual",
+                  message: "A step with these status transitions already exists",
+                });
+                setIsCheckingDuplicate(false);
+                return false;
+              }
             }
           } catch (error) {
             console.error("Error checking step existence:", error);
@@ -128,7 +151,7 @@ export const StepStatusSelection = () => {
       },
       getValues: () => form.getValues(),
     });
-  }, [registerStepForm, form, formData]);
+  }, [registerStepForm, form, formData, isEditMode]);
 
   // Fetch statuses when component mounts or circuitId changes
   useEffect(() => {

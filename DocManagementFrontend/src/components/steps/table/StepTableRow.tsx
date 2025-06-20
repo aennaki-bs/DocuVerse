@@ -343,7 +343,7 @@ export const StepTableRow = ({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <TableCell className="px-4 py-3">
+        <TableCell className="w-10 px-4 py-3">
           <div className="flex items-center gap-2">
             {onReorder && !isCircuitActive && (
               <GripVertical className="h-4 w-4 text-muted-foreground" />
@@ -356,19 +356,19 @@ export const StepTableRow = ({
             />
           </div>
         </TableCell>
-        <TableCell className="hidden md:table-cell px-4 py-3 text-sm text-blue-300/80">
+        <TableCell className="hidden md:table-cell w-[15%] px-4 py-3 text-sm text-blue-300/80">
           {step.stepKey}
         </TableCell>
-        <TableCell className="px-4 py-3">
+        <TableCell className="w-[30%] px-4 py-3">
           <div className="font-medium text-blue-100">{step.title}</div>
           <div className="text-sm text-blue-300/70 truncate max-w-[250px] mt-0.5 hidden md:block">
             {step.descriptif}
           </div>
         </TableCell>
-        <TableCell className="px-4 py-3">
+        <TableCell className="w-[15%] px-4 py-3">
           {renderStatusBadge(step.currentStatusTitle)}
         </TableCell>
-        <TableCell className="px-0 py-3">
+        <TableCell className="w-[5%] px-0 py-3">
           <div
             className={cn(
               "flex justify-center items-center transition-all duration-300",
@@ -385,11 +385,11 @@ export const StepTableRow = ({
             </div>
           </div>
         </TableCell>
-        <TableCell className="px-4 py-3">
+        <TableCell className="w-[15%] px-4 py-3">
           {renderStatusBadge(step.nextStatusTitle, true)}
         </TableCell>
-        <TableCell className="px-4 py-3">{renderApprovalInfo()}</TableCell>
-        <TableCell className="px-4 py-3">
+        <TableCell className="w-[15%] px-4 py-3">{renderApprovalInfo()}</TableCell>
+        <TableCell className="w-14 px-4 py-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -443,10 +443,34 @@ export const StepTableRow = ({
                   </Tooltip>
                 </TooltipProvider>
               )}
-              <DropdownMenuItem onClick={handleAssignApproval}>
-                <UserCheck className="mr-2 h-4 w-4" />
-                Assign Approval
-              </DropdownMenuItem>
+              <TooltipProvider>
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuItem
+                      onClick={() => !isCircuitActive && handleAssignApproval()}
+                      disabled={isCircuitActive}
+                      className={
+                        isCircuitActive
+                          ? "text-muted-foreground cursor-not-allowed"
+                          : ""
+                      }
+                    >
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Assign Approval
+                      {isCircuitActive && (
+                        <AlertCircle className="ml-2 h-3 w-3 text-amber-400" />
+                      )}
+                    </DropdownMenuItem>
+                  </TooltipTrigger>
+                  {isCircuitActive && (
+                    <TooltipContent side="left">
+                      <p className="text-xs">
+                        Cannot assign approval in active circuits
+                      </p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
               {onEditStep && onDeleteStep && <DropdownMenuSeparator />}
               {onDeleteStep && (
                 <TooltipProvider>

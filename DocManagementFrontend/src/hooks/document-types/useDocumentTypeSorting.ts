@@ -1,9 +1,8 @@
-
 import { useMemo, useState } from 'react';
 import { DocumentType } from '@/models/document';
 
 export const useDocumentTypeSorting = (types: DocumentType[]) => {
-  const [sortField, setSortField] = useState<string | null>('typeName');
+  const [sortField, setSortField] = useState<string | null>('typeNumber');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const handleSort = (field: string) => {
@@ -33,6 +32,14 @@ export const useDocumentTypeSorting = (types: DocumentType[]) => {
         case 'typeAttr':
           valueA = a.typeAttr || '';
           valueB = b.typeAttr || '';
+          break;
+        case 'typeNumber':
+          valueA = a.typeNumber ?? 0;
+          valueB = b.typeNumber ?? 0;
+          break;
+        case 'tierType':
+          valueA = a.tierType || '';
+          valueB = b.tierType || '';
           break;
         case 'documentCounter':
           valueA = a.documentCounter || 0;

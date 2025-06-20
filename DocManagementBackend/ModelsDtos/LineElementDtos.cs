@@ -129,12 +129,18 @@ namespace DocManagementBackend.Models
         // Location reference (only for Item types)
         public string? LocationCode { get; set; }
         
-        // Pricing fields
+        // Unit of measure code (only for Item types)
+        public string? UnitCode { get; set; }
+        
+        // Pricing fields (calculated by frontend)
         public decimal Quantity { get; set; } = 1;
-        public decimal PriceHT { get; set; } = 0;
+        public decimal PriceHT { get; set; } = 0; // Unit price after conversion (adjusted price)
         public decimal DiscountPercentage { get; set; } = 0;
-        public decimal? DiscountAmount { get; set; }
+        public decimal DiscountAmount { get; set; } = 0; // Calculated discount amount
         public decimal VatPercentage { get; set; } = 0;
+        
+        // Original unit price (before conversion) - for reference
+        public decimal OriginalPriceHT { get; set; } = 0;
     }
 
     public class UpdateLigneRequest
@@ -152,12 +158,18 @@ namespace DocManagementBackend.Models
         // Location reference (only for Item types)
         public string? LocationCode { get; set; }
         
-        // Pricing fields
+        // Unit of measure code (only for Item types)
+        public string? UnitCode { get; set; }
+        
+        // Pricing fields (calculated by frontend)
         public decimal? Quantity { get; set; }
-        public decimal? PriceHT { get; set; }
+        public decimal? PriceHT { get; set; } // Unit price after conversion (adjusted price)
         public decimal? DiscountPercentage { get; set; }
-        public decimal? DiscountAmount { get; set; }
+        public decimal? DiscountAmount { get; set; } // Calculated discount amount
         public decimal? VatPercentage { get; set; }
+        
+        // Original unit price (before conversion) - for reference
+        public decimal? OriginalPriceHT { get; set; }
     }
 
     // Simple DTOs for dropdowns
@@ -186,5 +198,17 @@ namespace DocManagementBackend.Models
     {
         public string Code { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+    }
+
+    // ItemUnitOfMeasure DTOs
+    public class ItemUnitOfMeasureDto
+    {
+        public int Id { get; set; }
+        public string ItemCode { get; set; } = string.Empty;
+        public string UnitOfMeasureCode { get; set; } = string.Empty;
+        public string UnitOfMeasureDescription { get; set; } = string.Empty;
+        public decimal QtyPerUnitOfMeasure { get; set; } = 1;
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
     }
 } 

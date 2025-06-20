@@ -178,25 +178,47 @@ const CircuitActivationDialog = ({
                   {circuit.steps.map((step, index) => (
                     <div
                       key={step.id}
-                      className="flex items-center gap-2 p-2 border border-blue-800/30 rounded bg-blue-900/20"
+                      className="flex items-center gap-3 p-3 border border-blue-800/30 rounded bg-blue-900/20"
                     >
-                      <div className="bg-blue-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                      <div className="bg-blue-700 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium">
                         {step.orderIndex || index + 1}
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium">{step.title}</div>
-                        <div className="text-xs text-blue-400">
-                          {step.descriptif || "No description"}
+                        <div className="font-medium text-blue-100 mb-1">{step.title}</div>
+                        
+                        {/* Status Transition */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge 
+                            variant="outline" 
+                            className="bg-orange-900/30 border-orange-500/40 text-orange-200 text-xs"
+                          >
+                            {step.currentStatusTitle || "Unknown"}
+                          </Badge>
+                          <ChevronRight className="h-3 w-3 text-blue-400" />
+                          <Badge 
+                            variant="outline" 
+                            className="bg-green-900/30 border-green-500/40 text-green-200 text-xs"
+                          >
+                            {step.nextStatusTitle || "Unknown"}
+                          </Badge>
                         </div>
+                        
+                        {step.descriptif && (
+                          <div className="text-xs text-blue-400">
+                            {step.descriptif}
+                          </div>
+                        )}
                       </div>
-                      {step.responsibleRole && (
-                        <Badge className="bg-green-700">
-                          {step.responsibleRole.name}
-                        </Badge>
-                      )}
-                      {step.isFinalStep && (
-                        <Badge className="bg-purple-700">Final</Badge>
-                      )}
+                      <div className="flex flex-col gap-1">
+                        {step.responsibleRole && (
+                          <Badge className="bg-green-700 text-xs">
+                            {step.responsibleRole.name}
+                          </Badge>
+                        )}
+                        {step.isFinalStep && (
+                          <Badge className="bg-purple-700 text-xs">Final</Badge>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

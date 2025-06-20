@@ -26,8 +26,11 @@ import {
   LignesElementTypeSimple,
   ItemSimple,
   GeneralAccountsSimple,
+  ItemUnitOfMeasure,
+  Item,
 } from "@/models/lineElements";
 import { LocationSimpleDto } from "@/models/location";
+import { calculateLigneAmounts, formatPrice as formatPriceUtil, formatPercentage as formatPercentageUtil } from "@/utils/ligneCalculations";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +67,7 @@ interface FormValues {
   lignesElementTypeId?: number;
   selectedElementCode?: string;
   locationCode?: string;
+  unitCode?: string;
   quantity: number;
   priceHT: number;
   discountPercentage: number;
@@ -111,6 +115,9 @@ const CreateLigneDialog = ({
   const [loadingElements, setLoadingElements] = useState(false);
   const [locations, setLocations] = useState<LocationSimpleDto[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
+  const [itemUnits, setItemUnits] = useState<ItemUnitOfMeasure[]>([]);
+  const [loadingUnits, setLoadingUnits] = useState(false);
+  const [selectedItemDetails, setSelectedItemDetails] = useState<Item | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -197,6 +204,63 @@ const CreateLigneDialog = ({
     ensureElementDataForReview();
   }, [step, formValues.lignesElementTypeId, elementTypes, availableElements.length]);
 
+  // Fetch item units when item is selected
+  useEffect(() => {
+    const fetchItemUnits = async () => {
+      if (!formValues.selectedElementCode) {
+        setItemUnits([]);
+        setSelectedItemDetails(null);
+        setFormValues(prev => ({ ...prev, unitCode: undefined }));
+        return;
+      }
+
+      const selectedType = elementTypes.find(t => t.id === formValues.lignesElementTypeId);
+      if (selectedType?.typeElement !== 'Item') {
+        setItemUnits([]);
+        setSelectedItemDetails(null);
+        setFormValues(prev => ({ ...prev, unitCode: undefined }));
+        return;
+      }
+
+      setLoadingUnits(true);
+      try {
+        // First get the item details to find the default unit
+        const [units, itemDetails] = await Promise.all([
+          lineElementsService.items.getItemUnits(formValues.selectedElementCode),
+          lineElementsService.items.getByCode(formValues.selectedElementCode)
+        ]);
+        
+        setItemUnits(units);
+        setSelectedItemDetails(itemDetails);
+        
+        if (units.length === 1) {
+          // Auto-select unit if only one exists
+          setFormValues(prev => ({ ...prev, unitCode: units[0].unitOfMeasureCode }));
+        } else if (units.length > 1) {
+          // Multiple units - pre-select the default unit from Item table
+          const defaultUnitCode = itemDetails.unite;
+          const defaultUnit = defaultUnitCode 
+            ? units.find(unit => unit.unitOfMeasureCode === defaultUnitCode)
+            : units[0]; // Fallback to first unit if no default found
+          
+          setFormValues(prev => ({ ...prev, unitCode: defaultUnit?.unitOfMeasureCode || units[0].unitOfMeasureCode }));
+        } else {
+          // No units available for this item
+          setFormValues(prev => ({ ...prev, unitCode: undefined }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch item units:", error);
+        setItemUnits([]);
+        setSelectedItemDetails(null);
+        setFormValues(prev => ({ ...prev, unitCode: undefined }));
+      } finally {
+        setLoadingUnits(false);
+      }
+    };
+
+    fetchItemUnits();
+  }, [formValues.selectedElementCode, formValues.lignesElementTypeId, elementTypes]);
+
   // Reset form when dialog opens
   useEffect(() => {
     if (isOpen && document) {
@@ -206,6 +270,8 @@ const CreateLigneDialog = ({
         code: '',
         lignesElementTypeId: undefined,
         selectedElementCode: undefined,
+        locationCode: undefined,
+        unitCode: undefined,
       }));
       setCodeValidation({
         isValidating: false,
@@ -315,27 +381,19 @@ const CreateLigneDialog = ({
     return () => clearTimeout(timeoutId);
   }, [formValues.code, existingLignes]);
 
+  // Calculate amounts using centralized utility
   const calculateAmounts = () => {
-    const subtotal = formValues.quantity * formValues.priceHT;
-    
-    let discountAmount = 0;
-    if (formValues.useFixedDiscount) {
-      discountAmount = formValues.discountAmount || 0;
-    } else {
-      discountAmount = subtotal * formValues.discountPercentage;
-    }
-    
-    const amountHT = subtotal - discountAmount;
-    const amountVAT = amountHT * formValues.vatPercentage;
-    const amountTTC = amountHT + amountVAT;
-    
-    return {
-      subtotal,
-      discountAmount,
-      amountHT,
-      amountVAT,
-      amountTTC,
-    };
+    return calculateLigneAmounts(
+      formValues.quantity,
+      formValues.priceHT,
+      formValues.discountPercentage,
+      formValues.discountAmount,
+      formValues.vatPercentage,
+      formValues.useFixedDiscount,
+      formValues.unitCode,
+      selectedItemDetails || undefined,
+      itemUnits
+    );
   };
 
   const resetForm = () => {
@@ -345,6 +403,8 @@ const CreateLigneDialog = ({
       article: "",
       lignesElementTypeId: undefined,
       selectedElementCode: undefined,
+      locationCode: undefined,
+      unitCode: undefined,
       quantity: 1,
       priceHT: 0,
       discountPercentage: 0,
@@ -354,6 +414,7 @@ const CreateLigneDialog = ({
     });
     setErrors({});
     setStep(1);
+    setItemUnits([]);
   };
 
   const handleClose = () => {
@@ -384,6 +445,10 @@ const CreateLigneDialog = ({
         const selectedType = elementTypes.find(t => t.id === formValues.lignesElementTypeId);
         if (selectedType?.typeElement === 'Item' && !formValues.locationCode) {
           newErrors.locationCode = "Location is required for items";
+        }
+        // Unit is required only for Item types when multiple units are available
+        if (selectedType?.typeElement === 'Item' && itemUnits.length > 0 && !formValues.unitCode) {
+          newErrors.unitCode = "Unit of measure is required for items";
         }
         break;
       case 2:
@@ -426,6 +491,9 @@ const CreateLigneDialog = ({
 
     setIsSubmitting(true);
     try {
+      // Calculate amounts to send to backend
+      const calculatedAmounts = calculateAmounts();
+      
       const request: CreateLigneRequest = {
         documentId: document.id,
         ligneKey: formValues.code,
@@ -434,11 +502,13 @@ const CreateLigneDialog = ({
         lignesElementTypeId: formValues.lignesElementTypeId!,
         selectedElementCode: formValues.selectedElementCode,
         locationCode: formValues.locationCode,
+        unitCode: formValues.unitCode,
         quantity: formValues.quantity,
-        priceHT: formValues.priceHT,
+        priceHT: calculatedAmounts.adjustedPriceHT, // Send adjusted price (unit price * ratio)
         discountPercentage: formValues.discountPercentage,
-        discountAmount: formValues.useFixedDiscount ? (formValues.discountAmount || 0) : undefined,
+        discountAmount: calculatedAmounts.discountAmount, // Send calculated discount amount
         vatPercentage: formValues.vatPercentage,
+        originalPriceHT: formValues.priceHT, // Send original price for reference
       };
 
       await documentService.createLigne(request);
@@ -454,20 +524,11 @@ const CreateLigneDialog = ({
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("fr-MA", {
-      style: "currency",
-      currency: "MAD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(price);
-  };
+  // Use centralized formatting functions
+  const formatPrice = formatPriceUtil;
+  const formatPercentage = formatPercentageUtil;
 
-  const formatPercentage = (value: number) => {
-    return `${(value * 100).toFixed(2)}%`;
-  };
-
-  const { amountHT, amountVAT, amountTTC } = calculateAmounts();
+  const { amountHT, amountVAT, amountTTC, unitConversionFactor, adjustedPriceHT } = calculateAmounts();
 
   const getSelectedElementType = () => {
     if (!formValues.lignesElementTypeId || !elementTypes.length) return null;
@@ -630,6 +691,83 @@ const CreateLigneDialog = ({
                       
                       {errors.selectedElementCode && (
                         <p className="text-red-400 text-sm mt-1">{errors.selectedElementCode}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Unit of Measure Selection - Only for Item types */}
+                  {formValues.lignesElementTypeId && getSelectedElementType()?.typeElement === 'Item' && formValues.selectedElementCode && (
+                    <div className="space-y-3">
+                      <Label htmlFor="unitCode" className="text-blue-200 text-base font-medium">
+                        Unit of Measure<span className="text-red-400">*</span>
+                      </Label>
+                      
+                      {loadingUnits ? (
+                        <div className="flex items-center justify-center p-4 bg-blue-950/30 rounded-lg border border-blue-400/20">
+                          <Loader2 className="h-4 w-4 text-blue-400 animate-spin mr-2" />
+                          <span className="text-blue-300 text-sm">Loading available units...</span>
+                        </div>
+                      ) : itemUnits.length === 0 ? (
+                        <div className="p-4 bg-yellow-950/30 rounded-lg border border-yellow-400/20">
+                          <p className="text-yellow-300 text-sm">
+                            No units of measure found for this item. Please contact an administrator.
+                          </p>
+                        </div>
+                      ) : itemUnits.length === 1 ? (
+                        <div className="p-4 bg-green-950/30 rounded-lg border border-green-400/20">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-green-500/20 p-2 rounded-lg">
+                              <Package className="h-4 w-4 text-green-400" />
+                            </div>
+                            <div>
+                              <h4 className="text-green-200 font-medium">
+                                {itemUnits[0].unitOfMeasureCode} - {itemUnits[0].unitOfMeasureDescription}
+                              </h4>
+                              <p className="text-green-300/70 text-sm">
+                                Auto-selected (only unit available) • Ratio: {itemUnits[0].qtyPerUnitOfMeasure}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <Select
+                          value={formValues.unitCode || ""}
+                          onValueChange={(value) => handleFieldChange("unitCode", value || undefined)}
+                        >
+                          <SelectTrigger className="bg-blue-950/40 border-blue-400/20 text-white h-12 text-base">
+                            <SelectValue placeholder="Select unit of measure" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-blue-950 border-blue-400/20 max-h-60">
+                            {itemUnits.map((unit) => (
+                              <SelectItem key={unit.unitOfMeasureCode} value={unit.unitOfMeasureCode} className="text-white hover:bg-blue-800">
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{unit.unitOfMeasureCode} - {unit.unitOfMeasureDescription}</span>
+                                    {selectedItemDetails?.unite === unit.unitOfMeasureCode && (
+                                      <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded">Default</span>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-gray-400">Ratio: {unit.qtyPerUnitOfMeasure}</div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      
+                      {/* Show info about pre-selected unit */}
+                      {itemUnits.length > 1 && formValues.unitCode && (
+                        <div className="p-3 bg-blue-950/20 rounded-lg border border-blue-400/10">
+                          <p className="text-blue-300 text-sm">
+                            {selectedItemDetails?.unite === formValues.unitCode 
+                              ? `✓ Pre-selected default unit from item: ${formValues.unitCode}` 
+                              : `✓ Pre-selected unit: ${formValues.unitCode} (no default unit defined for this item)`}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {errors.unitCode && (
+                        <p className="text-red-400 text-sm mt-1">{errors.unitCode}</p>
                       )}
                     </div>
                   )}
@@ -838,6 +976,36 @@ const CreateLigneDialog = ({
                     </div>
                   </div>
 
+                  {/* Unit Conversion Info - Only show for Item types with non-default units */}
+                  {formValues.unitCode && selectedItemDetails && unitConversionFactor !== 1 && (
+                    <div className="p-4 bg-yellow-950/20 rounded-lg border border-yellow-500/20">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <Label className="text-yellow-200 text-base font-medium">Unit Conversion Applied</Label>
+                      </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-yellow-400">Base Price (HT):</span>
+                          <div className="text-white font-medium">{formatPrice(formValues.priceHT)}</div>
+                        </div>
+                        <div>
+                          <span className="text-yellow-400">Conversion Factor:</span>
+                          <div className="text-white font-medium">× {unitConversionFactor}</div>
+                        </div>
+                        <div>
+                          <span className="text-yellow-400">Adjusted Price (HT):</span>
+                          <div className="text-white font-medium">{formatPrice(adjustedPriceHT)}</div>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-3 bg-yellow-950/30 rounded border border-yellow-500/30">
+                        <p className="text-yellow-100 text-xs">
+                          <strong>Note:</strong> Since you're using unit "{formValues.unitCode}" instead of the default unit "{selectedItemDetails.unite}", 
+                          the price has been automatically adjusted by the conversion factor ({unitConversionFactor}).
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Discount Section */}
                   <div className="space-y-4 p-4 bg-orange-950/20 rounded-lg border border-orange-500/20">
                     <div className="flex items-center gap-2 mb-3">
@@ -1035,6 +1203,35 @@ const CreateLigneDialog = ({
                           </div>
                         </div>
                       )}
+                      {/* Unit of Measure - Only for Item types */}
+                      {selectedElementType?.typeElement === 'Item' && (
+                        <div>
+                          <span className="text-blue-400">Unit of Measure:</span>
+                          <div className="text-white">
+                            {formValues.unitCode ? (
+                              <div>
+                                <div className="font-medium">{formValues.unitCode}</div>
+                                <div className="text-gray-400 text-xs">
+                                  {(() => {
+                                    const selectedUnit = itemUnits.find(u => u.unitOfMeasureCode === formValues.unitCode);
+                                    if (selectedUnit) {
+                                      return `${selectedUnit.unitOfMeasureDescription} • Ratio: ${selectedUnit.qtyPerUnitOfMeasure}`;
+                                    }
+                                    return 'Unit details not available';
+                                  })()}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">
+                                {itemUnits.length === 1 && itemUnits[0] ? 
+                                  `${itemUnits[0].unitOfMeasureCode} (Auto-selected)` : 
+                                  'No unit selected'
+                                }
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="space-y-2">
@@ -1044,7 +1241,14 @@ const CreateLigneDialog = ({
                       </div>
                       <div>
                         <span className="text-blue-400">Unit Price (HT):</span>
-                        <div className="text-white">{formatPrice(formValues.priceHT)}</div>
+                        <div className="text-white">
+                          {formatPrice(formValues.priceHT)}
+                          {unitConversionFactor !== 1 && (
+                            <div className="text-yellow-300 text-xs mt-1">
+                              Adjusted: {formatPrice(adjustedPriceHT)} (× {unitConversionFactor})
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <span className="text-blue-400">Discount:</span>
@@ -1061,6 +1265,35 @@ const CreateLigneDialog = ({
                       </div>
                     </div>
                   </div>
+
+                  {/* Unit Conversion Summary - Only show for Item types with non-default units */}
+                  {formValues.unitCode && selectedItemDetails && unitConversionFactor !== 1 && (
+                    <div className="p-4 bg-yellow-950/20 rounded-lg border border-yellow-500/20">
+                      <h4 className="text-yellow-200 font-medium mb-2 flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        Unit Conversion Applied
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-yellow-400">Selected Unit:</span>
+                          <div className="text-white font-medium">{formValues.unitCode}</div>
+                        </div>
+                        <div>
+                          <span className="text-yellow-400">Default Unit:</span>
+                          <div className="text-white font-medium">{selectedItemDetails.unite}</div>
+                        </div>
+                        <div>
+                          <span className="text-yellow-400">Conversion Factor:</span>
+                          <div className="text-white font-medium">× {unitConversionFactor}</div>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-3 bg-yellow-950/30 rounded border border-yellow-500/30">
+                        <p className="text-yellow-100 text-xs">
+                          Price has been automatically adjusted from {formatPrice(formValues.priceHT)} to {formatPrice(adjustedPriceHT)} to account for the unit conversion.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Final calculation */}
                   <div className="p-4 bg-green-950/30 rounded-lg border border-green-400/20">
@@ -1116,7 +1349,8 @@ const CreateLigneDialog = ({
                   onClick={handleNext}
                   disabled={
                     (step === 1 && (!formValues.lignesElementTypeId || !formValues.selectedElementCode || 
-                      (getSelectedElementType()?.typeElement === 'Item' && !formValues.locationCode))) ||
+                      (getSelectedElementType()?.typeElement === 'Item' && !formValues.locationCode) ||
+                      (getSelectedElementType()?.typeElement === 'Item' && itemUnits.length > 0 && !formValues.unitCode))) ||
                     (step === 2 && (codeValidation.isValidating || codeValidation.isValid !== true))
                   }
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"

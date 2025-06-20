@@ -19,12 +19,14 @@ namespace DocManagementBackend.Controllers
         private readonly ApplicationDbContext _context;
         private readonly DocumentWorkflowService _workflowService;
         private readonly UserAuthorizationService _authService;
+        private readonly IDocumentErpArchivalService _erpArchivalService;
         
-        public DocumentsController(ApplicationDbContext context, DocumentWorkflowService workflowService, UserAuthorizationService authService) 
+        public DocumentsController(ApplicationDbContext context, DocumentWorkflowService workflowService, UserAuthorizationService authService, IDocumentErpArchivalService erpArchivalService) 
         { 
             _context = context;
             _workflowService = workflowService;
             _authService = authService;
+            _erpArchivalService = erpArchivalService;
         }
 
         [HttpGet]
@@ -347,6 +349,10 @@ namespace DocManagementBackend.Controllers
             if (document == null)
                 return NotFound("Document not found.");
 
+            // Check if document is archived to ERP
+            if (!string.IsNullOrEmpty(document.ERPDocumentCode))
+                return BadRequest("This document has been archived to the ERP system and cannot be modified.");
+
             // Update basic document fields
             document.Content = request.Content ?? document.Content;
             document.Title = request.Title ?? document.Title;
@@ -541,6 +547,11 @@ namespace DocManagementBackend.Controllers
 
             var userId = authResult.UserId;
             var user = authResult.User!;
+            
+            // Check if document is archived to ERP before allowing deletion
+            var documentToCheck = await _context.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id);
+            if (documentToCheck != null && !string.IsNullOrEmpty(documentToCheck.ERPDocumentCode))
+                return BadRequest("This document has been archived to the ERP system and cannot be deleted.");
 
             try
             {
@@ -1056,6 +1067,204 @@ namespace DocManagementBackend.Controllers
             {
                 await transaction.RollbackAsync();
                 return StatusCode(500, $"An error occurred during bulk deletion: {ex.Message}");
+            }
+        }
+
+        // Test endpoint for manual ERP archival
+        [HttpPost("{id}/archive-to-erp")]
+        public async Task<IActionResult> ManualErpArchival(int id)
+        {
+            var authResult = await _authService.AuthorizeUserAsync(User, new[] { "Admin" });
+            if (!authResult.IsAuthorized)
+                return authResult.ErrorResponse!;
+
+            try
+            {
+                var document = await _context.Documents.FindAsync(id);
+                if (document == null)
+                    return NotFound("Document not found");
+
+                // Check if already archived
+                if (!string.IsNullOrEmpty(document.ERPDocumentCode))
+                    return BadRequest($"Document is already archived to ERP with code: {document.ERPDocumentCode}");
+
+                // Trigger ERP archival
+                var success = await _erpArchivalService.ArchiveDocumentToErpAsync(id);
+                
+                if (success)
+                {
+                    // Refresh document to get updated ERP code
+                    await _context.Entry(document).ReloadAsync();
+                    return Ok(new { 
+                        message = "Document successfully archived to ERP", 
+                        erpDocumentCode = document.ERPDocumentCode 
+                    });
+                }
+                else
+                {
+                    return StatusCode(500, "Failed to archive document to ERP. Check logs for details.");
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error during ERP archival: {ex.Message}");
+            }
+        }
+
+        // Test endpoint for manual ERP line creation
+        [HttpPost("{id}/create-lines-in-erp")]
+        public async Task<IActionResult> ManualErpLineCreation(int id)
+        {
+            var authResult = await _authService.AuthorizeUserAsync(User, new[] { "Admin" });
+            if (!authResult.IsAuthorized)
+                return authResult.ErrorResponse!;
+
+            try
+            {
+                var document = await _context.Documents
+                    .Include(d => d.Lignes)
+                    .FirstOrDefaultAsync(d => d.Id == id);
+                    
+                if (document == null)
+                    return NotFound("Document not found");
+
+                // Check if document is archived to ERP
+                if (string.IsNullOrEmpty(document.ERPDocumentCode))
+                    return BadRequest("Document must be archived to ERP first before creating lines");
+
+                if (!document.Lignes.Any())
+                    return BadRequest("Document has no lines to create in ERP");
+
+                // Trigger ERP line creation
+                var success = await _erpArchivalService.CreateDocumentLinesInErpAsync(id);
+                
+                if (success)
+                {
+                    // Refresh document lines to get updated ERP line codes
+                    await _context.Entry(document).ReloadAsync();
+                    await _context.Entry(document).Collection(d => d.Lignes).LoadAsync();
+                    
+                    var lineResults = document.Lignes.Select(l => new {
+                        ligneId = l.Id,
+                        title = l.Title,
+                        erpLineCode = l.ERPLineCode,
+                        isCreated = !string.IsNullOrEmpty(l.ERPLineCode)
+                    }).ToList();
+                    
+                    return Ok(new { 
+                        message = "Document lines successfully processed in ERP", 
+                        erpDocumentCode = document.ERPDocumentCode,
+                        totalLines = document.Lignes.Count,
+                        createdLines = lineResults.Count(l => l.isCreated),
+                        lines = lineResults
+                    });
+                }
+                else
+                {
+                    return StatusCode(500, "Failed to create some or all document lines in ERP. Check logs for details.");
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error during ERP line creation: {ex.Message}");
+            }
+        }
+
+        // Endpoint to fix archived documents that don't have their lines created in ERP
+        [HttpPost("fix-missing-erp-lines")]
+        public async Task<IActionResult> FixMissingErpLines()
+        {
+            var authResult = await _authService.AuthorizeUserAsync(User, new[] { "Admin" });
+            if (!authResult.IsAuthorized)
+                return authResult.ErrorResponse!;
+
+            try
+            {
+                // Find documents that are archived to ERP but have lines without ERPLineCode
+                var documentsNeedingLineFix = await _context.Documents
+                    .Include(d => d.Lignes)
+                    .Where(d => !string.IsNullOrEmpty(d.ERPDocumentCode) && 
+                               d.Lignes.Any(l => string.IsNullOrEmpty(l.ERPLineCode)))
+                    .ToListAsync();
+
+                if (!documentsNeedingLineFix.Any())
+                {
+                    return Ok(new { 
+                        message = "No documents found that need line fixes",
+                        documentsProcessed = 0
+                    });
+                }
+
+                var successCount = 0;
+                var errorCount = 0;
+                var results = new List<object>();
+
+                foreach (var document in documentsNeedingLineFix)
+                {
+                    try
+                    {
+                        var linesNeedingCreation = document.Lignes.Where(l => string.IsNullOrEmpty(l.ERPLineCode)).Count();
+                        
+                        if (linesNeedingCreation > 0)
+                        {
+                            var success = await _erpArchivalService.CreateDocumentLinesInErpAsync(document.Id);
+                            
+                            if (success)
+                            {
+                                successCount++;
+                                
+                                // Refresh to get updated line codes
+                                await _context.Entry(document).ReloadAsync();
+                                await _context.Entry(document).Collection(d => d.Lignes).LoadAsync();
+                                
+                                var createdLines = document.Lignes.Count(l => !string.IsNullOrEmpty(l.ERPLineCode));
+                                
+                                results.Add(new {
+                                    documentId = document.Id,
+                                    documentKey = document.DocumentKey,
+                                    erpDocumentCode = document.ERPDocumentCode,
+                                    status = "success",
+                                    totalLines = document.Lignes.Count,
+                                    createdLines = createdLines
+                                });
+                            }
+                            else
+                            {
+                                errorCount++;
+                                results.Add(new {
+                                    documentId = document.Id,
+                                    documentKey = document.DocumentKey,
+                                    erpDocumentCode = document.ERPDocumentCode,
+                                    status = "failed",
+                                    error = "Failed to create lines in ERP"
+                                });
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                        results.Add(new {
+                            documentId = document.Id,
+                            documentKey = document.DocumentKey,
+                            erpDocumentCode = document.ERPDocumentCode,
+                            status = "error",
+                            error = ex.Message
+                        });
+                    }
+                }
+
+                return Ok(new {
+                    message = $"Processed {documentsNeedingLineFix.Count} documents with missing ERP lines",
+                    documentsProcessed = documentsNeedingLineFix.Count,
+                    successCount = successCount,
+                    errorCount = errorCount,
+                    results = results
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error during bulk ERP line fix: {ex.Message}");
             }
         }
     }

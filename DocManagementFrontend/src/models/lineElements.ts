@@ -90,6 +90,17 @@ export interface UpdateUniteCodeRequest {
   description?: string;
 }
 
+// ItemUnitOfMeasure models
+export interface ItemUnitOfMeasure {
+  id: number;
+  itemCode: string;
+  unitOfMeasureCode: string;
+  unitOfMeasureDescription: string;
+  qtyPerUnitOfMeasure: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // GeneralAccounts models
 export interface GeneralAccounts {
   code: string;

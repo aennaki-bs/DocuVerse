@@ -1,5 +1,7 @@
 import { Document } from "@/models/document";
 import DocumentStatusBadge from "./DocumentStatusBadge";
+import { Badge } from "@/components/ui/badge";
+import { Archive } from "lucide-react";
 
 interface DocumentTitleProps {
   document: Document | undefined;
@@ -20,6 +22,12 @@ const DocumentTitle = ({ document, isLoading }: DocumentTitleProps) => {
               {document?.documentKey}
             </h1>
             {document && <DocumentStatusBadge status={document.status} />}
+            {document?.erpDocumentCode && (
+              <Badge className="bg-orange-600/20 text-orange-200 hover:bg-orange-600/30 border-orange-600/30">
+                <Archive className="h-3 w-3 mr-1" />
+                Archived to ERP
+              </Badge>
+            )}
           </div>
         )}
       </div>

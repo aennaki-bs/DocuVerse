@@ -112,6 +112,40 @@ namespace DocManagementBackend.Controllers
             return Ok(item);
         }
 
+        // GET: api/Item/ABC123/units
+        [HttpGet("{code}/units")]
+        public async Task<ActionResult<IEnumerable<ItemUnitOfMeasureDto>>> GetItemUnits(string code)
+        {
+            var authResult = await _authService.AuthorizeUserAsync(User);
+            if (!authResult.IsAuthorized)
+                return authResult.ErrorResponse!;
+
+            // First verify the item exists
+            var itemExists = await _context.Items
+                .AnyAsync(i => i.Code == code);
+
+            if (!itemExists)
+                return NotFound("Item not found.");
+
+            var itemUnits = await _context.ItemUnitOfMeasures
+                .Include(ium => ium.UnitOfMeasure)
+                .Where(ium => ium.ItemCode == code)
+                .Select(ium => new ItemUnitOfMeasureDto
+                {
+                    Id = ium.Id,
+                    ItemCode = ium.ItemCode,
+                    UnitOfMeasureCode = ium.UnitOfMeasureCode,
+                    UnitOfMeasureDescription = ium.UnitOfMeasure.Description,
+                    QtyPerUnitOfMeasure = ium.QtyPerUnitOfMeasure,
+                    CreatedAt = ium.CreatedAt,
+                    UpdatedAt = ium.UpdatedAt
+                })
+                .OrderBy(ium => ium.UnitOfMeasureCode)
+                .ToListAsync();
+
+            return Ok(itemUnits);
+        }
+
         // POST: api/Item/validate-code
         [HttpPost("validate-code")]
         public async Task<IActionResult> ValidateCode([FromBody] CreateItemRequest request)

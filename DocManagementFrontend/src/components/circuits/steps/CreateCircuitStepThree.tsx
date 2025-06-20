@@ -8,7 +8,7 @@ interface CreateCircuitStepThreeProps {
   descriptif: string;
   documentTypeId?: number;
   disabled?: boolean;
-  onEdit: (step: 1 | 2 | 3) => void;
+  onEdit: (step: 1 | 2 | 3 | 4) => void;
   onBack: () => void;
   onSubmit: () => void;
   isSubmitting: boolean;
@@ -37,53 +37,59 @@ export default function CreateCircuitStepThree({
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-lg font-medium text-white">Review Circuit</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            className="text-gray-400 hover:text-blue-400 pl-1 pr-1 py-0.5 rounded border border-transparent hover:border-blue-400 transition ml-2"
-            onClick={() => onEdit(1)}
-            disabled={disabled || isSubmitting}
-          >
-            <Edit className="w-4 h-4 mr-0.5" />
-            Edit Title
-          </Button>
         </div>
         <div className="flex flex-col gap-2 bg-[#171f3c] rounded-lg p-3 text-blue-200">
-          <div>
-            <span className="font-semibold">Title:</span>
-            <span className="ml-2 text-blue-100">{title}</span>
-          </div>
-          <div>
-            <span className="font-semibold">Description:</span>
-            <span className="ml-2 text-blue-300">
-              {descriptif?.trim()
-                ? descriptif
-                : <span className="italic text-gray-400">No description</span>}
-            </span>
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-semibold">Title:</span>
+              <span className="ml-2 text-blue-100">{title}</span>
+            </div>
             <Button
               variant="ghost"
               size="sm"
               type="button"
-              className="ml-3 text-gray-400 hover:text-blue-400 pl-1 pr-1 py-0.5 rounded border border-transparent hover:border-blue-400 transition"
+              className="text-gray-400 hover:text-blue-400 pl-1 pr-1 py-0.5 rounded border border-transparent hover:border-blue-400 transition"
               onClick={() => onEdit(2)}
+              disabled={disabled || isSubmitting}
+            >
+              <Edit className="w-4 h-4 mr-0.5" />
+              Edit Title
+            </Button>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-semibold">Description:</span>
+              <span className="ml-2 text-blue-300">
+                {descriptif?.trim()
+                  ? descriptif
+                  : <span className="italic text-gray-400">No description</span>}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              className="text-gray-400 hover:text-blue-400 pl-1 pr-1 py-0.5 rounded border border-transparent hover:border-blue-400 transition"
+              onClick={() => onEdit(3)}
               disabled={disabled || isSubmitting}
             >
               <Edit className="w-4 h-4 mr-0.5" />
               Edit Description
             </Button>
           </div>
-          <div>
-            <span className="font-semibold">Document Type:</span>
-            <span className="ml-2 text-blue-100">
-              {selectedDocumentType?.typeName || 'Unknown Document Type'}
-            </span>
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-semibold">Document Type:</span>
+              <span className="ml-2 text-blue-100">
+                {selectedDocumentType?.typeName || 'Unknown Document Type'}
+              </span>
+            </div>
             <Button
               variant="ghost"
               size="sm"
               type="button"
-              className="ml-3 text-gray-400 hover:text-blue-400 pl-1 pr-1 py-0.5 rounded border border-transparent hover:border-blue-400 transition"
-              onClick={() => onEdit(3)}
+              className="text-gray-400 hover:text-blue-400 pl-1 pr-1 py-0.5 rounded border border-transparent hover:border-blue-400 transition"
+              onClick={() => onEdit(1)}
               disabled={disabled || isSubmitting}
             >
               <Edit className="w-4 h-4 mr-0.5" />

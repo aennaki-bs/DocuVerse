@@ -69,6 +69,7 @@ export function ApproverSelector({
   const [selectedGroup, setSelectedGroup] = useState<ApprovalGroup | null>(
     null
   );
+  const [isGroupMembersExpanded, setIsGroupMembersExpanded] = useState(false);
 
   // Add refs to directly manipulate the dropdown elements for manual selection
   const approverSelectRef = useRef<HTMLButtonElement>(null);
@@ -124,6 +125,7 @@ export function ApproverSelector({
       const matchingGroup = groups.find((g) => g.id === selectedGroupId);
       if (matchingGroup) {
         setSelectedGroup(matchingGroup);
+        setIsGroupMembersExpanded(false); // Reset expansion state when group changes
         // Force a rerender to make sure UI reflects the selection
         setForceUpdate((prev) => prev + 1);
       }
@@ -216,6 +218,7 @@ export function ApproverSelector({
               ruleType: (group.ruleType as ApprovalRuleType) || "All",
             };
             setSelectedGroup(typedGroup);
+            setIsGroupMembersExpanded(false); // Reset expansion state when group changes
             // Manually set HTML content for group selection
             updateGroupSelectUI(typedGroup);
           }
@@ -302,6 +305,7 @@ export function ApproverSelector({
     const group = groups.find((g) => g.id === groupId);
     if (group) {
       setSelectedGroup(group);
+      setIsGroupMembersExpanded(false); // Reset expansion state when group changes
       updateGroupSelectUI(group);
       onGroupSelected(groupId);
     }
@@ -391,51 +395,25 @@ export function ApproverSelector({
             <>
               {approvers.length > 0 ? (
                 <>
-                  <Combobox
-                    options={approverOptions}
+                  {/* Main approver selection */}
+                  <select
+                    className="w-full bg-[#0d1541]/70 border border-blue-900/50 text-white rounded p-2 text-sm"
                     value={selectedUserId?.toString() || ""}
-                    onValueChange={(value) => {
-                      // Using a guard here to ensure proper conversion
-                      const userId = value ? parseInt(value, 10) : undefined;
-                      // Only trigger if the value has actually changed
-                      if (userId !== selectedUserId) {
-                        console.log("Selecting user:", userId);
-                        handleDirectUserSelection(userId!);
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val) {
+                        handleDirectUserSelection(parseInt(val, 10));
                       }
                     }}
-                    placeholder="Select an approver"
-                    emptyText={
-                      approverOptions.length === 0
-                        ? "No approvers available"
-                        : "No approvers found"
-                    }
-                    searchPlaceholder="Search approvers by name or role..."
                     disabled={disabled}
-                    ref={approverSelectRef as any}
-                  />
-
-                  {/* Backup direct selection for small screens */}
-                  {approvers.length > 0 && !selectedUserId && (
-                    <div className="mt-2">
-                      <select
-                        className="w-full bg-[#0d1541]/70 border border-blue-900/50 text-white rounded p-2 text-sm"
-                        value={selectedUserId?.toString() || ""}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val) {
-                            handleDirectUserSelection(parseInt(val, 10));
-                          }
-                        }}
-                      >
-                        <option value="">Select an approver</option>
-                        {approvers.map((a) => (
-                          <option key={a.userId} value={a.userId}>
-                            {a.username}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  >
+                    <option value="">Select an approver</option>
+                    {approvers.map((a) => (
+                      <option key={a.userId} value={a.userId}>
+                        {a.username}
+                      </option>
+                    ))}
+                  </select>
 
                   {/* Selected approver display */}
                   {selectedApprover && (
@@ -477,51 +455,25 @@ export function ApproverSelector({
             <>
               {groups.length > 0 ? (
                 <>
-                  <Combobox
-                    options={groupOptions}
+                  {/* Main approval group selection */}
+                  <select
+                    className="w-full bg-[#0d1541]/70 border border-blue-900/50 text-white rounded p-2 text-sm"
                     value={selectedGroupId?.toString() || ""}
-                    onValueChange={(value) => {
-                      // Using a guard here to ensure proper conversion
-                      const groupId = value ? parseInt(value, 10) : undefined;
-                      // Only trigger if the value has actually changed
-                      if (groupId !== selectedGroupId) {
-                        console.log("Selecting group:", groupId);
-                        handleDirectGroupSelection(groupId!);
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val) {
+                        handleDirectGroupSelection(parseInt(val, 10));
                       }
                     }}
-                    placeholder="Select an approval group"
-                    emptyText={
-                      groupOptions.length === 0
-                        ? "No approval groups available"
-                        : "No approval groups found"
-                    }
-                    searchPlaceholder="Search approval groups..."
                     disabled={disabled}
-                    ref={groupSelectRef as any}
-                  />
-
-                  {/* Backup direct selection for small screens */}
-                  {groups.length > 0 && !selectedGroupId && (
-                    <div className="mt-2">
-                      <select
-                        className="w-full bg-[#0d1541]/70 border border-blue-900/50 text-white rounded p-2 text-sm"
-                        value={selectedGroupId?.toString() || ""}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val) {
-                            handleDirectGroupSelection(parseInt(val, 10));
-                          }
-                        }}
-                      >
-                        <option value="">Select an approval group</option>
-                        {groups.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  >
+                    <option value="">Select an approval group</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
 
                   {/* Selected group display */}
                   {selectedGroup && (
@@ -558,27 +510,48 @@ export function ApproverSelector({
                         selectedGroup.approvers.length > 0 && (
                           <div className="mt-2 pt-2 border-t border-blue-900/30">
                             <div className="text-xs text-blue-300/70 mb-1">
-                              Group members:
+                              {selectedGroup.ruleType === 'Sequential' ? 'Approval sequence:' : 'Group members:'}
                             </div>
                             <div className="flex flex-wrap gap-1">
-                              {selectedGroup.approvers
-                                .slice(0, 3)
-                                .map((approver) => (
-                                  <Badge
-                                    key={approver.userId}
-                                    variant="secondary"
-                                    className="bg-blue-900/40 text-blue-200"
-                                  >
-                                    {approver.username}
-                                  </Badge>
-                                ))}
-                              {selectedGroup.approvers.length > 3 && (
+                              {(isGroupMembersExpanded 
+                                ? selectedGroup.approvers 
+                                : selectedGroup.approvers.slice(0, 3)
+                              ).map((approver, index) => (
                                 <Badge
+                                  key={approver.userId}
                                   variant="secondary"
-                                  className="bg-blue-900/40 text-blue-200"
+                                  className={`${
+                                    selectedGroup.ruleType === 'Sequential'
+                                      ? "bg-purple-900/40 text-purple-200 border border-purple-800/50"
+                                      : "bg-blue-900/40 text-blue-200"
+                                  }`}
                                 >
-                                  +{selectedGroup.approvers.length - 3} more
+                                  {selectedGroup.ruleType === 'Sequential' && (
+                                    <span className="mr-1 text-xs font-mono">
+                                      {(approver.orderIndex ?? index) + 1}.
+                                    </span>
+                                  )}
+                                  {approver.username}
                                 </Badge>
+                              ))}
+                              {selectedGroup.approvers.length > 3 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setIsGroupMembersExpanded(!isGroupMembersExpanded);
+                                  }}
+                                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-colors hover:opacity-80 ${
+                                    selectedGroup.ruleType === 'Sequential'
+                                      ? "bg-purple-900/40 text-purple-200 border border-purple-800/50 hover:bg-purple-900/60"
+                                      : "bg-blue-900/40 text-blue-200 border hover:bg-blue-900/60"
+                                  }`}
+                                >
+                                  {isGroupMembersExpanded 
+                                    ? "Show less" 
+                                    : `+${selectedGroup.approvers.length - 3} more`
+                                  }
+                                </button>
                               )}
                             </div>
                           </div>

@@ -16,6 +16,7 @@ import {
   GeneralAccountsSimple,
   CreateGeneralAccountsRequest,
   UpdateGeneralAccountsRequest,
+  ItemUnitOfMeasure,
 } from '../models/lineElements';
 
 // LignesElementType Service
@@ -155,6 +156,16 @@ export const itemService = {
       await api.delete(`/Item/${code}`);
     } catch (error) {
       console.error(`Error deleting item with code ${code}:`, error);
+      throw error;
+    }
+  },
+
+  getItemUnits: async (itemCode: string): Promise<ItemUnitOfMeasure[]> => {
+    try {
+      const response = await api.get(`/Item/${itemCode}/units`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching units for item ${itemCode}:`, error);
       throw error;
     }
   },

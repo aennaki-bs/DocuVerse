@@ -10,6 +10,7 @@ interface CreateCircuitStepOneProps {
   disabled?: boolean;
   onNext: () => void;
   onCancel: () => void;
+  onBack?: () => void;
 }
 
 export default function CreateCircuitStepOne({
@@ -19,6 +20,7 @@ export default function CreateCircuitStepOne({
   disabled,
   onNext,
   onCancel,
+  onBack,
 }: CreateCircuitStepOneProps) {
   return (
     <div className="space-y-6">
@@ -53,16 +55,28 @@ export default function CreateCircuitStepOne({
         </p>
       </div>
 
-      <div className="flex justify-end gap-3 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={disabled}
-          className="border-blue-800/50 bg-transparent text-blue-300 hover:bg-blue-900/30 hover:text-blue-200 transition-colors"
-        >
-          Cancel
-        </Button>
+      <div className="flex justify-between gap-3 pt-4">
+        {onBack ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBack}
+            disabled={disabled}
+            className="border-blue-800/50 bg-transparent text-blue-300 hover:bg-blue-900/30 hover:text-blue-200 transition-colors"
+          >
+            Back
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={disabled}
+            className="border-blue-800/50 bg-transparent text-blue-300 hover:bg-blue-900/30 hover:text-blue-200 transition-colors"
+          >
+            Cancel
+          </Button>
+        )}
         <Button
           type="button"
           onClick={onNext}

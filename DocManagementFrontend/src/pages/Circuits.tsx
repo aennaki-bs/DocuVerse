@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/tooltip";
 import CreateCircuitDialog from "@/components/circuits/CreateCircuitDialog";
 import EditCircuitDialog from "@/components/circuits/EditCircuitDialog";
+import CircuitActivationDialog from "@/components/circuits/CircuitActivationDialog";
+import CircuitDeactivationDialog from "@/components/circuits/CircuitDeactivationDialog";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -93,6 +95,8 @@ export default function CircuitsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [selectedCircuit, setSelectedCircuit] = useState<Circuit | null>(null);
+  const [circuitToActivate, setCircuitToActivate] = useState<Circuit | null>(null);
+  const [circuitToDeactivate, setCircuitToDeactivate] = useState<Circuit | null>(null);
 
   const isSimpleUser = user?.role === "SimpleUser";
 
@@ -171,15 +175,39 @@ export default function CircuitsPage() {
   const handleToggleActive = async (circuit: Circuit) => {
     if (isSimpleUser) return;
 
+    // For activation, show the activation dialog
+    if (!circuit.isActive) {
+      setCircuitToActivate(circuit);
+      return;
+    }
+
+    // For deactivation, show the deactivation dialog
+    setCircuitToDeactivate(circuit);
+  };
+
+  // Handle activation after dialog confirmation
+  const performToggle = async (circuit: Circuit) => {
     setLoadingCircuits((prev) => [...prev, circuit.id]);
     try {
       await circuitService.toggleCircuitActivation(circuit);
       await fetchCircuits();
-      toast.success(
-        `Circuit ${circuit.isActive ? "deactivated" : "activated"} successfully`
-      );
+      toast.success("Circuit activated successfully");
     } catch (error: any) {
-      toast.error(error?.message || "Failed to update circuit status");
+      toast.error(error?.message || "Failed to activate circuit");
+    } finally {
+      setLoadingCircuits((prev) => prev.filter((id) => id !== circuit.id));
+    }
+  };
+
+  // Handle deactivation after dialog confirmation
+  const performDeactivation = async (circuit: Circuit) => {
+    setLoadingCircuits((prev) => [...prev, circuit.id]);
+    try {
+      await circuitService.toggleCircuitActivation(circuit);
+      await fetchCircuits();
+      toast.success("Circuit deactivated successfully");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to deactivate circuit");
     } finally {
       setLoadingCircuits((prev) => prev.filter((id) => id !== circuit.id));
     }
@@ -446,6 +474,32 @@ export default function CircuitsPage() {
         destructive={true}
       />
 
+      {/* Circuit Activation Dialog */}
+      {circuitToActivate && (
+        <CircuitActivationDialog
+          isOpen={true}
+          onClose={() => setCircuitToActivate(null)}
+          circuit={circuitToActivate}
+          onActivate={() => {
+            performToggle(circuitToActivate);
+            setCircuitToActivate(null);
+          }}
+        />
+      )}
+
+      {/* Circuit Deactivation Dialog */}
+      {circuitToDeactivate && (
+        <CircuitDeactivationDialog
+          isOpen={true}
+          onClose={() => setCircuitToDeactivate(null)}
+          circuit={circuitToDeactivate}
+          onDeactivate={() => {
+            performDeactivation(circuitToDeactivate);
+            setCircuitToDeactivate(null);
+          }}
+        />
+      )}
+
       {/* API Error Alert */}
       {apiError && (
         <Alert
@@ -681,13 +735,14 @@ export default function CircuitsPage() {
                           {paginatedCircuits.map((circuit) => (
                             <TableRow
                               key={circuit.id}
-                              className={`border-blue-200 dark:border-blue-900/30 transition-all duration-150 ${
+                              className={`border-blue-200 dark:border-blue-900/30 transition-all duration-150 cursor-pointer ${
                                 selectedCircuits.includes(circuit.id)
                                   ? "bg-blue-100 dark:bg-blue-900/30 border-l-4 border-l-blue-600 dark:border-l-blue-500"
                                   : "hover:bg-blue-50 dark:hover:bg-blue-900/20"
                               }`}
+                              onClick={() => navigate(`/circuits/${circuit.id}/statuses`)}
                             >
-                              <TableCell className="w-[48px]">
+                              <TableCell className="w-[48px]" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center justify-center">
                                   <Checkbox
                                     checked={selectedCircuits.includes(
@@ -748,7 +803,7 @@ export default function CircuitsPage() {
                                   </Badge>
                                 )}
                               </TableCell>
-                              <TableCell className="w-[100px]">
+                              <TableCell className="w-[100px]" onClick={(e) => e.stopPropagation()}>
                                 {!isSimpleUser && (
                                   <TooltipProvider>
                                     <Tooltip>
@@ -787,7 +842,7 @@ export default function CircuitsPage() {
                                   </TooltipProvider>
                                 )}
                               </TableCell>
-                              <TableCell className="w-[80px] text-right">
+                              <TableCell className="w-[80px] text-right" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button

@@ -111,6 +111,7 @@ builder.Services.AddScoped<CircuitManagementService>();
 builder.Services.AddScoped<DocumentWorkflowService>();
 builder.Services.AddScoped<UserAuthorizationService>();
 builder.Services.AddScoped<LineElementService>();
+builder.Services.AddScoped<IDocumentErpArchivalService, DocumentErpArchivalService>();
 
 // Add API Sync Services
 builder.Services.AddApiSyncServices();

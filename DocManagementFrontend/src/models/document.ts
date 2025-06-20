@@ -51,6 +51,10 @@ export interface Document {
   customerVendorAddress?: string;
   customerVendorCity?: string;
   customerVendorCountry?: string;
+  
+  // ERP Archive status
+  erpDocumentCode?: string;
+  isArchived?: boolean;
 }
 
 export interface DocumentType {
@@ -137,6 +141,10 @@ export interface Ligne {
   locationCode?: string;
   location?: LocationDto;
   
+  // Unit of measure reference (only for Item types)
+  unitCode?: string;
+  unit?: UniteCode;
+  
   // Pricing fields
   quantity: number;
   priceHT: number;
@@ -148,6 +156,9 @@ export interface Ligne {
   amountHT: number;
   amountVAT: number;
   amountTTC: number;
+  
+  // ERP Integration field
+  erpLineCode?: string;
   
   createdAt: string;
   updatedAt: string;
@@ -170,12 +181,18 @@ export interface CreateLigneRequest {
   // Location code (only for Item types)
   locationCode?: string;
   
-  // Pricing fields
+  // Unit of measure code (only for Item types)
+  unitCode?: string;
+  
+  // Pricing fields (calculated by frontend)
   quantity: number;
-  priceHT: number;
+  priceHT: number; // Unit price after conversion (adjusted price)
   discountPercentage: number;
-  discountAmount?: number;
+  discountAmount: number; // Calculated discount amount
   vatPercentage: number;
+  
+  // Original unit price (before conversion) - for reference
+  originalPriceHT: number;
 }
 
 export interface UpdateLigneRequest {
@@ -192,12 +209,18 @@ export interface UpdateLigneRequest {
   // Location code (only for Item types)
   locationCode?: string;
   
-  // Pricing fields
+  // Unit of measure code (only for Item types)
+  unitCode?: string;
+  
+  // Pricing fields (calculated by frontend)
   quantity?: number;
-  priceHT?: number;
+  priceHT?: number; // Unit price after conversion (adjusted price)
   discountPercentage?: number;
-  discountAmount?: number;
+  discountAmount?: number; // Calculated discount amount
   vatPercentage?: number;
+  
+  // Original unit price (before conversion) - for reference
+  originalPriceHT?: number;
 }
 
 export interface SousLigne {
