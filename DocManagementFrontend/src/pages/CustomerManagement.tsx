@@ -43,6 +43,7 @@ const CustomerManagementPage = () => {
           <Button
             onClick={() => setIsCreateCustomerOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+            disabled
           >
             <Plus className="h-4 w-4" />
             Add Customer

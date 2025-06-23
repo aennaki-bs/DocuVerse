@@ -505,6 +505,7 @@ const GeneralAccountsManagement = ({
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+            disabled
           >
             <Plus className="h-4 w-4" />
             Create General Account
@@ -633,17 +634,9 @@ const GeneralAccountsManagement = ({
                               variant="ghost"
                               size="sm"
                               onClick={() => openDeleteDialog(account)}
-                              disabled={account.lignesCount > 0}
-                              className={`h-8 w-8 p-0 ${
-                                account.lignesCount > 0
-                                  ? "opacity-50 cursor-not-allowed text-gray-500 dark:text-gray-400"
-                                  : "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30"
-                              }`}
-                              title={
-                                account.lignesCount > 0
-                                  ? "Cannot delete: Account is used in document lines"
-                                  : "Delete general account"
-                              }
+                              disabled
+                              className="h-8 w-8 p-0 opacity-50 cursor-not-allowed text-gray-500 dark:text-gray-400"
+                              title="Delete functionality disabled"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -724,6 +717,7 @@ const GeneralAccountsManagement = ({
                     size="sm"
                     className="bg-red-900/40 border-red-500/40 text-red-200 hover:text-red-100 hover:bg-red-900/60 hover:border-red-400/60 transition-all duration-200 shadow-lg min-w-[80px] font-medium"
                     onClick={() => setIsBulkDeleteDialogOpen(true)}
+                    disabled
                   >
                     <Trash2 className="w-4 h-4 mr-1.5" />
                     Delete
@@ -767,34 +761,19 @@ const GeneralAccountsManagement = ({
                 name="code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-blue-200">
-                      Code
-                      {selectedAccount?.lignesCount > 0 && (
-                        <span className="text-amber-400 text-xs ml-2">
-                          (Cannot edit: Account is in use)
-                        </span>
-                      )}
-                    </FormLabel>
+                    <FormLabel className="text-blue-200">Code</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Enter account code"
                         {...field}
-                        disabled={selectedAccount?.lignesCount > 0}
-                        className={`bg-blue-950/30 border-blue-800/30 ${
-                          selectedAccount?.lignesCount > 0
-                            ? "text-gray-400 cursor-not-allowed"
-                            : "text-blue-100"
-                        }`}
+                        disabled
+                        className="bg-blue-950/30 border-blue-800/30 text-gray-400 cursor-not-allowed opacity-50"
                       />
                     </FormControl>
                     <FormMessage />
-                    {selectedAccount?.lignesCount > 0 && (
-                      <p className="text-amber-400 text-xs mt-1">
-                        Code cannot be changed because this account is used in{" "}
-                        {selectedAccount.lignesCount} document line
-                        {selectedAccount.lignesCount !== 1 ? "s" : ""}.
-                      </p>
-                    )}
+                    <p className="text-blue-400 text-xs mt-1">
+                      Code cannot be edited
+                    </p>
                   </FormItem>
                 )}
               />

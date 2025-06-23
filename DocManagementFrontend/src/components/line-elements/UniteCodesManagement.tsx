@@ -657,7 +657,7 @@ const UniteCodesManagement = ({
             onOpenChange={setIsCreateDialogOpen}
           >
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2" disabled>
                 <Plus className="h-4 w-4" />
                 Create Unit Code
               </Button>
@@ -779,17 +779,9 @@ const UniteCodesManagement = ({
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  disabled={uniteCode.itemsCount > 0}
-                                  className={`h-8 w-8 p-0 ${
-                                    uniteCode.itemsCount > 0
-                                      ? "opacity-50 cursor-not-allowed text-gray-500 dark:text-gray-400"
-                                      : "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30"
-                                  }`}
-                                  title={
-                                    uniteCode.itemsCount > 0
-                                      ? "Cannot delete: Unit code is used in items"
-                                      : "Delete unit code"
-                                  }
+                                  disabled
+                                  className="h-8 w-8 p-0 opacity-50 cursor-not-allowed text-gray-500 dark:text-gray-400"
+                                  title="Delete functionality disabled"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -903,24 +895,10 @@ const UniteCodesManagement = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={selectedUniteCodes.some((code) => {
-                      const uniteCode = filteredAndSortedUniteCodes.find(
-                        (uc) => uc.code === code
-                      );
-                      return uniteCode && uniteCode.itemsCount > 0;
-                    })}
+                    disabled
                     className="bg-red-900/40 border-red-500/40 text-red-200 hover:text-red-100 hover:bg-red-900/60 hover:border-red-400/60 transition-all duration-200 shadow-lg min-w-[80px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => setIsBulkDeleteDialogOpen(true)}
-                    title={
-                      selectedUniteCodes.some((code) => {
-                        const uniteCode = filteredAndSortedUniteCodes.find(
-                          (uc) => uc.code === code
-                        );
-                        return uniteCode && uniteCode.itemsCount > 0;
-                      })
-                        ? "Some selected unit codes are used by items"
-                        : "Delete selected unit codes"
-                    }
+                    title="Delete functionality disabled"
                   >
                     <Trash2 className="w-4 h-4 mr-1.5" />
                     Delete
@@ -1115,42 +1093,17 @@ const UniteCodesManagement = ({
                   <FormItem>
                     <FormLabel className="text-blue-200">Code</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <Input
-                          placeholder="Enter unit code (e.g., KG, M, L)"
-                          {...field}
-                          className="bg-blue-950/30 border-blue-800/30 text-blue-100 pr-10"
-                          onChange={(e) =>
-                            field.onChange(e.target.value.toUpperCase())
-                          }
-                        />
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          {editCodeValidation.isValidating && (
-                            <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
-                          )}
-                          {editCodeValidation.isValid === true && (
-                            <Check className="h-4 w-4 text-green-500" />
-                          )}
-                          {editCodeValidation.isValid === false && (
-                            <X className="h-4 w-4 text-red-500" />
-                          )}
-                        </div>
-                      </div>
+                      <Input
+                        placeholder="Enter unit code (e.g., KG, M, L)"
+                        {...field}
+                        className="bg-blue-950/30 border-blue-800/30 text-blue-100 opacity-50 cursor-not-allowed"
+                        disabled
+                      />
                     </FormControl>
                     <FormMessage />
-                    {editCodeValidation.message && (
-                      <p
-                        className={`text-xs mt-1 ${
-                          editCodeValidation.isValid === true
-                            ? "text-green-400"
-                            : editCodeValidation.isValid === false
-                            ? "text-red-400"
-                            : "text-blue-300"
-                        }`}
-                      >
-                        {editCodeValidation.message}
-                      </p>
-                    )}
+                    <p className="text-xs mt-1 text-blue-400">
+                      Code cannot be edited
+                    </p>
                   </FormItem>
                 )}
               />

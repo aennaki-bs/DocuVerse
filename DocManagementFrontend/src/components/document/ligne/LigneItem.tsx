@@ -160,22 +160,46 @@ const LigneItem = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-blue-400 hover:text-blue-300 hover:bg-blue-900/40"
+                      disabled={!!ligne.erpLineCode}
+                      className={`h-8 w-8 ${
+                        ligne.erpLineCode 
+                          ? "opacity-50 cursor-not-allowed text-gray-500"
+                          : "text-blue-400 hover:text-blue-300 hover:bg-blue-900/40"
+                      }`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEdit(ligne);
+                        if (!ligne.erpLineCode) {
+                          onEdit(ligne);
+                        }
                       }}
+                      title={
+                        ligne.erpLineCode 
+                          ? "Cannot edit: Line is archived to ERP"
+                          : "Edit line"
+                      }
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-900/30"
+                      disabled={!!ligne.erpLineCode}
+                      className={`h-8 w-8 ${
+                        ligne.erpLineCode 
+                          ? "opacity-50 cursor-not-allowed text-gray-500"
+                          : "text-red-400 hover:text-red-300 hover:bg-red-900/30"
+                      }`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDelete(ligne);
+                        if (!ligne.erpLineCode) {
+                          onDelete(ligne);
+                        }
                       }}
+                      title={
+                        ligne.erpLineCode 
+                          ? "Cannot delete: Line is archived to ERP"
+                          : "Delete line"
+                      }
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

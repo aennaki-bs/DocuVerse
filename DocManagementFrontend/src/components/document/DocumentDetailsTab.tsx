@@ -15,6 +15,7 @@ import {
   Package,
   Users,
   Building2,
+  Archive,
 } from "lucide-react";
 import { Document, TierType } from "@/models/document";
 import { WorkflowStatus } from "@/services/workflowService";
@@ -186,7 +187,33 @@ const DocumentDetailsTab = ({
         </div>
       )}
 
-
+      {/* ERP Archival Status Banner */}
+      {document.erpDocumentCode && (
+        <div className="bg-gradient-to-r from-orange-900/20 to-amber-900/20 py-4 px-6 border-b border-orange-700/30">
+          <div className="flex items-center justify-center">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-full bg-orange-600/20 border border-orange-500/30">
+                <Archive className="h-6 w-6 text-orange-400" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-orange-200 mb-1 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                  Archived to ERP
+                </h3>
+                <p className="text-sm text-orange-300/80">
+                  ERP Document Code: 
+                  <span className="text-orange-200 font-mono bg-orange-900/30 px-3 py-1 rounded ml-2 font-semibold">
+                    {document.erpDocumentCode}
+                  </span>
+                </p>
+                <p className="text-xs text-orange-300/70 mt-1 max-w-md">
+                  This document has been successfully archived to the Business Central ERP system and cannot be modified.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="p-6 text-blue-100">
         <div className="grid md:grid-cols-3 gap-5 mb-6">
@@ -333,6 +360,8 @@ const DocumentDetailsTab = ({
               {new Date(document.createdAt).toLocaleTimeString()}
             </p>
           </div>
+
+           
 
           {/* Customer/Vendor Information Grid Item */}
           {shouldShowCustomerVendor() && (document.customerVendorName || document.customerVendorCode) && (

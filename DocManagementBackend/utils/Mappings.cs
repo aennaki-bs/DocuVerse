@@ -381,7 +381,10 @@ namespace DocManagementBackend.Mappings
             CustomerVendorName = d.CustomerVendorName,
             CustomerVendorAddress = d.CustomerVendorAddress,
             CustomerVendorCity = d.CustomerVendorCity,
-            CustomerVendorCountry = d.CustomerVendorCountry
+            CustomerVendorCountry = d.CustomerVendorCountry,
+            
+            // ERP Integration
+            ERPDocumentCode = d.ERPDocumentCode
         };
     }
 

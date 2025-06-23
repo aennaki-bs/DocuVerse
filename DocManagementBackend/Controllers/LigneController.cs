@@ -293,6 +293,10 @@ namespace DocManagementBackend.Controllers
             if (ligne == null)
                 return NotFound("Ligne not found.");
 
+            // Check if line is archived to ERP
+            if (!string.IsNullOrEmpty(ligne.ERPLineCode))
+                return BadRequest("This line has been archived to the ERP system and cannot be modified.");
+
             // Track the old GeneralAccount for count management
             GeneralAccounts? oldGeneralAccount = null;
             if (ligne.LignesElementType?.TypeElement == ElementType.GeneralAccounts)
@@ -502,6 +506,10 @@ namespace DocManagementBackend.Controllers
             if (ligne == null)
                 return NotFound("Ligne not found.");
 
+            // Check if line is archived to ERP
+            if (!string.IsNullOrEmpty(ligne.ERPLineCode))
+                return BadRequest("This line has been archived to the ERP system and cannot be deleted.");
+
             // Check if there are sous-lignes associated
             if (ligne.SousLignes.Any())
                 return BadRequest("Cannot delete ligne. There are sous-lignes associated with it.");
@@ -627,19 +635,60 @@ namespace DocManagementBackend.Controllers
                 // Load element data for the ligne
                 await ligne.LoadElementAsync(_context);
 
+                // Validate element data after loading
+                if (ligne.LignesElementType?.TypeElement == ElementType.Item && ligne.Item == null)
+                {
+                    ConsoleColorHelper.WriteError($"[ERP] Item with code '{ligne.ElementId}' not found in database for ligne {ligne.Id}");
+                    return BadRequest(new { 
+                        message = $"Item with code '{ligne.ElementId}' not found",
+                        canAddToErp = false,
+                        reason = "item_not_found"
+                    });
+                }
+
+                if (ligne.LignesElementType?.TypeElement == ElementType.GeneralAccounts && ligne.GeneralAccount == null)
+                {
+                    ConsoleColorHelper.WriteError($"[ERP] General Account with code '{ligne.ElementId}' not found in database for ligne {ligne.Id}");
+                    return BadRequest(new { 
+                        message = $"General Account with code '{ligne.ElementId}' not found",
+                        canAddToErp = false,
+                        reason = "account_not_found"
+                    });
+                }
+
                 // Build the line payload for BC API
                 var linePayload = BuildErpLinePayload(ligne);
                 
                 // Call the ERP line creation service
+                ConsoleColorHelper.WriteInfo($"[ERP] Starting ERP line creation for ligne {ligne.Id}");
                 var erpLineCode = await CallBusinessCenterLineApi(linePayload);
                 
                 if (!string.IsNullOrEmpty(erpLineCode))
                 {
+                    // Check if another line in the SAME DOCUMENT already has this ERP line code
+                    var existingLineWithCode = await _context.Lignes
+                        .FirstOrDefaultAsync(l => l.ERPLineCode == erpLineCode && 
+                                                 l.DocumentId == ligne.DocumentId && 
+                                                 l.Id != ligne.Id);
+                    
+                    if (existingLineWithCode != null)
+                    {
+                        ConsoleColorHelper.WriteWarning($"[ERP] ERP line code {erpLineCode} already exists for ligne {existingLineWithCode.Id} in the same document");
+                        return BadRequest(new { 
+                            message = $"ERP line code {erpLineCode} already exists for another line (ID: {existingLineWithCode.Id}) in the same document. This indicates a synchronization issue with Business Central.",
+                            success = false,
+                            duplicateLineId = existingLineWithCode.Id,
+                            erpLineCode = erpLineCode
+                        });
+                    }
+                    
                     // Update ligne with ERP line code
                     ligne.ERPLineCode = erpLineCode;
                     ligne.UpdatedAt = DateTime.UtcNow;
                     
                     await _context.SaveChangesAsync();
+                    
+                    ConsoleColorHelper.WriteSuccess($"[ERP] Line {ligne.Id} successfully added to ERP with code: {erpLineCode}");
                     
                     return Ok(new { 
                         message = "Line successfully added to ERP",
@@ -650,6 +699,7 @@ namespace DocManagementBackend.Controllers
                 }
                 else
                 {
+                    ConsoleColorHelper.WriteError($"[ERP] Failed to add line {ligne.Id} to ERP - no line code returned from API");
                     return StatusCode(500, new { 
                         message = "Failed to add line to ERP. Please check server logs for details.",
                         success = false
@@ -658,10 +708,89 @@ namespace DocManagementBackend.Controllers
             }
             catch (Exception ex)
             {
+                ConsoleColorHelper.WriteException($"[ERP] Exception occurred while adding line {id} to ERP", ex);
                 return StatusCode(500, new { 
                     message = $"Error adding line to ERP: {ex.Message}",
-                    success = false
+                    success = false,
+                    exceptionType = ex.GetType().Name
                 });
+            }
+        }
+
+        // Diagnostic endpoint to test ERP connection
+        [HttpGet("test-erp-connection")]
+        public async Task<IActionResult> TestErpConnection()
+        {
+            var authResult = await _authService.AuthorizeUserAsync(User, new[] { "Admin" });
+            if (!authResult.IsAuthorized)
+                return authResult.ErrorResponse!;
+
+            try
+            {
+                const string apiEndpoint = "http://localhost:25048/BC250/ODataV4/APICreateDocVerse_CreateDocLine?company=CRONUS%20France%20S.A.";
+                
+                var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+                var username = configuration["BcApi:Username"];
+                var password = configuration["BcApi:Password"];
+                var domain = configuration["BcApi:Domain"];
+
+                ConsoleColorHelper.WriteInfo($"Testing ERP connection to: {apiEndpoint}");
+                ConsoleColorHelper.WriteInfo($"Using credentials - Username: {username}, Domain: {domain}");
+
+                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+                {
+                    ConsoleColorHelper.WriteError("BC API credentials not configured");
+                    return BadRequest(new { 
+                        message = "BC API credentials not configured",
+                        endpoint = apiEndpoint,
+                        hasUsername = !string.IsNullOrEmpty(username),
+                        hasPassword = !string.IsNullOrEmpty(password),
+                        hasDomain = !string.IsNullOrEmpty(domain)
+                    });
+                }
+
+                using var handler = new HttpClientHandler()
+                {
+                    Credentials = new System.Net.NetworkCredential(username, password, domain)
+                };
+                
+                using var httpClient = new HttpClient(handler);
+                httpClient.DefaultRequestHeaders.Add("User-Agent", "DocVerse-ConnectionTest/1.0");
+                httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+
+                // Test with a simple GET request first
+                try
+                {
+                    var response = await httpClient.GetAsync(apiEndpoint.Replace("APICreateDocVerse_CreateDocLine", ""));
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    
+                    ConsoleColorHelper.WriteSuccess($"Connection test response: {response.StatusCode}");
+                    
+                    return Ok(new {
+                        message = "ERP connection test completed",
+                        endpoint = apiEndpoint,
+                        statusCode = (int)response.StatusCode,
+                        isSuccess = response.IsSuccessStatusCode,
+                        responseLength = responseContent?.Length ?? 0,
+                        username = username,
+                        domain = domain
+                    });
+                }
+                catch (Exception ex)
+                {
+                    ConsoleColorHelper.WriteException("ERP connection test failed", ex);
+                    return StatusCode(500, new {
+                        message = "ERP connection test failed",
+                        error = ex.Message,
+                        type = ex.GetType().Name,
+                        endpoint = apiEndpoint
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                ConsoleColorHelper.WriteException("Error during ERP connection test", ex);
+                return StatusCode(500, $"Error during connection test: {ex.Message}");
             }
         }
 
@@ -756,7 +885,14 @@ namespace DocManagementBackend.Controllers
                 uniteOfMeasure = ligne.UnitCode ?? ligne.Item?.Unite ?? "";
             }
 
-            return new
+            // Get location code (only for Item types)
+            string locationCode = "";
+            if (type == 2) // Item type
+            {
+                locationCode = ligne.LocationCode ?? "";
+            }
+
+            var payload = new
             {
                 tierTYpe = tierType,
                 docType = ligne.Document.DocumentType?.TypeNumber ?? 0,
@@ -764,11 +900,28 @@ namespace DocManagementBackend.Controllers
                 type = type,
                 codeLine = codeLine,
                 descriptionLine = ligne.Title ?? "",
+                locationCOde = locationCode, // Note: Capital O as required by BC API
                 qty = ligne.Quantity,
                 uniteOfMeasure = uniteOfMeasure,
                 unitpriceCOst = ligne.PriceHT,
                 discountAmt = ligne.DiscountAmount
             };
+
+            // Log payload creation with colored output
+            ConsoleColorHelper.WriteDebug($"[ERP] Building payload for ligne {ligne.Id}:");
+            ConsoleColorHelper.WriteDebug($"[ERP] - TierType: {tierType} (from {ligne.Document.DocumentType?.TierType})");
+            ConsoleColorHelper.WriteDebug($"[ERP] - DocType: {ligne.Document.DocumentType?.TypeNumber ?? 0}");
+            ConsoleColorHelper.WriteDebug($"[ERP] - DocNo: {ligne.Document.ERPDocumentCode}");
+            ConsoleColorHelper.WriteDebug($"[ERP] - Type: {type} (from {ligne.LignesElementType?.TypeElement})");
+            ConsoleColorHelper.WriteDebug($"[ERP] - CodeLine: {codeLine}");
+            ConsoleColorHelper.WriteDebug($"[ERP] - Description: {ligne.Title}");
+            ConsoleColorHelper.WriteDebug($"[ERP] - LocationCode: {locationCode} (sent as locationCOde)");
+            ConsoleColorHelper.WriteDebug($"[ERP] - Qty: {ligne.Quantity}");
+            ConsoleColorHelper.WriteDebug($"[ERP] - UniteOfMeasure: {uniteOfMeasure}");
+            ConsoleColorHelper.WriteDebug($"[ERP] - UnitPrice: {ligne.PriceHT}");
+            ConsoleColorHelper.WriteDebug($"[ERP] - DiscountAmt: {ligne.DiscountAmount}");
+
+            return payload;
         }
 
         private async Task<string?> CallBusinessCenterLineApi(object payload)
@@ -797,20 +950,22 @@ namespace DocManagementBackend.Controllers
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
 
-                Console.WriteLine($"[ERP] Calling BC API: {apiEndpoint}");
-                Console.WriteLine($"[ERP] Payload: {json}");
-                Console.WriteLine($"[ERP] Username: {username}, Domain: {domain}");
+                // Info logging for API call
+                ConsoleColorHelper.WriteInfo($"[ERP] Calling BC API: {apiEndpoint}");
+                ConsoleColorHelper.WriteInfo($"[ERP] Payload: {json}");
+                ConsoleColorHelper.WriteInfo($"[ERP] Username: {username}, Domain: {domain}");
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await httpClient.PostAsync(apiEndpoint, content);
                 var responseContent = await response.Content.ReadAsStringAsync();
                 
-                Console.WriteLine($"[ERP] Response Status: {response.StatusCode}");
-                Console.WriteLine($"[ERP] Response Content: {responseContent}");
-                
                 if (response.IsSuccessStatusCode)
                 {
+                    // Success logging
+                    ConsoleColorHelper.WriteSuccess($"[ERP] API call successful - Status: {response.StatusCode}");
+                    ConsoleColorHelper.WriteSuccess($"[ERP] Response Content: {responseContent}");
+                    
                     // Parse the response to extract the line code
                     if (!string.IsNullOrWhiteSpace(responseContent))
                     {
@@ -819,24 +974,118 @@ namespace DocManagementBackend.Controllers
                             var responseObj = JsonSerializer.Deserialize<JsonElement>(responseContent);
                             if (responseObj.TryGetProperty("value", out var valueElement))
                             {
-                                return valueElement.GetString();
+                                // Handle both string and integer values from BC API
+                                return valueElement.ValueKind switch
+                                {
+                                    JsonValueKind.String => valueElement.GetString(),
+                                    JsonValueKind.Number => valueElement.GetInt32().ToString(),
+                                    _ => valueElement.ToString()
+                                };
                             }
                             return responseContent.Trim('"');
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            ConsoleColorHelper.WriteWarning($"[ERP] Failed to parse response JSON, using raw content: {ex.Message}");
                             return responseContent.Trim().Trim('"');
                         }
                     }
                     return responseContent;
                 }
+                else
+                {
+                    // Error logging
+                    ConsoleColorHelper.WriteError($"[ERP] API call failed - Status: {response.StatusCode}");
+                    ConsoleColorHelper.WriteError($"[ERP] Response Content: {responseContent}");
+                    ConsoleColorHelper.WriteError($"[ERP] Request Headers: {string.Join(", ", httpClient.DefaultRequestHeaders.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"))}");
+                    ConsoleColorHelper.WriteError($"[ERP] Response Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"))}");
+                }
                 return null;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERP] Exception: {ex.Message}");
-                Console.WriteLine($"[ERP] Stack trace: {ex.StackTrace}");
+                // Exception logging with detailed information
+                ConsoleColorHelper.WriteException("[ERP] API call exception", ex);
+                ConsoleColorHelper.WriteError($"[ERP] Payload that caused error: {JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true })}");
+                ConsoleColorHelper.WriteError($"[ERP] Endpoint: {apiEndpoint}");
+                ConsoleColorHelper.WriteError($"[ERP] Credentials - Username: {username}, Domain: {domain}");
                 return null;
+            }
+        }
+
+        // Diagnostic endpoint to fix existing lines with raw JSON ERP codes
+        [HttpPost("fix-erp-line-codes")]
+        public async Task<IActionResult> FixErpLineCodes()
+        {
+            var authResult = await _authService.AuthorizeUserAsync(User, new[] { "Admin" });
+            if (!authResult.IsAuthorized)
+                return authResult.ErrorResponse!;
+
+            try
+            {
+                var lignesWithRawJson = await _context.Lignes
+                    .Where(l => !string.IsNullOrEmpty(l.ERPLineCode) && 
+                               (l.ERPLineCode.Contains("@odata.context") || l.ERPLineCode.Contains("value")))
+                    .ToListAsync();
+
+                int fixedCount = 0;
+                var fixedLines = new List<object>();
+
+                foreach (var ligne in lignesWithRawJson)
+                {
+                    var originalCode = ligne.ERPLineCode;
+                    
+                    try
+                    {
+                        var responseObj = JsonSerializer.Deserialize<JsonElement>(originalCode);
+                        if (responseObj.TryGetProperty("value", out var valueElement))
+                        {
+                            var cleanCode = valueElement.ValueKind switch
+                            {
+                                JsonValueKind.String => valueElement.GetString(),
+                                JsonValueKind.Number => valueElement.GetInt32().ToString(),
+                                _ => valueElement.ToString()
+                            };
+
+                            if (!string.IsNullOrEmpty(cleanCode))
+                            {
+                                ligne.ERPLineCode = cleanCode;
+                                ligne.UpdatedAt = DateTime.UtcNow;
+                                fixedCount++;
+                                
+                                fixedLines.Add(new {
+                                    ligneId = ligne.Id,
+                                    originalCode = originalCode,
+                                    cleanCode = cleanCode
+                                });
+
+                                ConsoleColorHelper.WriteSuccess($"[FIX] Fixed ligne {ligne.Id}: '{originalCode}' -> '{cleanCode}'");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ConsoleColorHelper.WriteWarning($"[FIX] Failed to parse JSON for ligne {ligne.Id}: {ex.Message}");
+                    }
+                }
+
+                if (fixedCount > 0)
+                {
+                    await _context.SaveChangesAsync();
+                    ConsoleColorHelper.WriteSuccess($"[FIX] Successfully fixed {fixedCount} lines");
+                }
+
+                return Ok(new {
+                    message = $"Fixed {fixedCount} lines with raw JSON ERP codes",
+                    fixedCount = fixedCount,
+                    totalFound = lignesWithRawJson.Count,
+                    fixedLines = fixedLines
+                });
+            }
+            catch (Exception ex)
+            {
+                ConsoleColorHelper.WriteException("[FIX] Error fixing ERP line codes", ex);
+                return StatusCode(500, $"Error fixing ERP line codes: {ex.Message}");
             }
         }
     }

@@ -599,51 +599,52 @@ export default function VendorTable() {
                         </Tooltip>
                       </TooltipProvider>
 
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <AlertDialog>
+                      <AlertDialog>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
                               <AlertDialogTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:scale-110 transition-all duration-200"
+                                  disabled
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-white dark:bg-slate-800 text-blue-900 dark:text-white border border-blue-300 dark:border-slate-700">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Are you sure?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription className="text-blue-700 dark:text-gray-300">
-                                    This will permanently delete the vendor "
-                                    {vendor.name}" ({vendor.vendorCode}). This
-                                    action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel className="bg-white dark:bg-slate-700 text-blue-900 dark:text-white hover:bg-blue-100 dark:hover:bg-slate-600 border border-blue-300 dark:border-none">
-                                    Cancel
-                                  </AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() =>
-                                      handleDeleteVendor(vendor.vendorCode)
-                                    }
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Delete vendor</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete vendor</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <AlertDialogContent className="bg-white dark:bg-slate-800 text-blue-900 dark:text-white border border-blue-300 dark:border-slate-700">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Are you sure?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-blue-700 dark:text-gray-300">
+                              This will permanently delete the vendor "
+                              {vendor.name}" ({vendor.vendorCode}). This
+                              action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="bg-white dark:bg-slate-700 text-blue-900 dark:text-white hover:bg-blue-100 dark:hover:bg-slate-600 border border-blue-300 dark:border-none">
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() =>
+                                handleDeleteVendor(vendor.vendorCode)
+                              }
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>

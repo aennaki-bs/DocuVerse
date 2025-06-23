@@ -55,3 +55,8 @@ add get apis endpoints:
 
 add items units of measure table:
     
+
+\
+Problems faced:
+    - ERPCreateDocument: the document Date when typeTier is 1, the document date is stored as posting date.
+    - ERPCreateDocumentLine: same of the general accounts are not stored, same as the locations.

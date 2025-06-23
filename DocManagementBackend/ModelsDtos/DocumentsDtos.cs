@@ -80,6 +80,9 @@ namespace DocManagementBackend.Models
         public string? CustomerVendorAddress { get; set; }
         public string? CustomerVendorCity { get; set; }
         public string? CustomerVendorCountry { get; set; }
+        
+        // ERP Integration
+        public string? ERPDocumentCode { get; set; }
     }
 
     public class DocumentTypeDto

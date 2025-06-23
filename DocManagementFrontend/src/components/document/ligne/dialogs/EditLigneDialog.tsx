@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Edit, CheckCircle2, Ban, Calculator, Package } from "lucide-react";
+import { Edit, CheckCircle2, Ban, Calculator, Package, Archive } from "lucide-react";
 import { Document, Ligne, UpdateLigneRequest } from "@/models/document";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -209,11 +209,29 @@ const EditLigneDialog = ({
           </DialogTitle>
         </DialogHeader>
 
+        {/* ERP Protection Message */}
+        {ligne?.erpLineCode && (
+          <div className="flex items-center gap-3 p-4 bg-orange-900/20 rounded-md border border-orange-500/30 mb-4">
+            <Archive className="h-8 w-8 text-orange-400 flex-shrink-0" />
+            <div>
+              <h3 className="font-medium text-orange-200 mb-1">
+                Line Archived to ERP
+              </h3>
+              <p className="text-sm text-orange-300/80">
+                This line has been archived to the ERP system and cannot be modified.
+              </p>
+              <p className="text-xs text-orange-300/60 mt-1">
+                ERP Line Code: <span className="font-mono">{ligne.erpLineCode}</span>
+              </p>
+            </div>
+          </div>
+        )}
+
         <Tabs defaultValue="basic" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-blue-950/40">
-            <TabsTrigger value="basic" className="text-blue-200">Basic Info</TabsTrigger>
-            <TabsTrigger value="elements" className="text-blue-200">Elements</TabsTrigger>
-            <TabsTrigger value="pricing" className="text-blue-200">Pricing</TabsTrigger>
+            <TabsTrigger value="basic" className="text-blue-200" disabled={!!ligne?.erpLineCode}>Basic Info</TabsTrigger>
+            <TabsTrigger value="elements" className="text-blue-200" disabled={!!ligne?.erpLineCode}>Elements</TabsTrigger>
+            <TabsTrigger value="pricing" className="text-blue-200" disabled={!!ligne?.erpLineCode}>Pricing</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4 mt-4">
@@ -511,26 +529,28 @@ const EditLigneDialog = ({
             onClick={() => onOpenChange(false)}
             className="border-blue-400/30 text-blue-300 hover:text-white hover:bg-blue-700/50"
           >
-            <Ban className="h-4 w-4 mr-2" /> Cancel
+            <Ban className="h-4 w-4 mr-2" /> {ligne?.erpLineCode ? "Close" : "Cancel"}
           </Button>
-          <Button
-            onClick={handleUpdateLigne}
-            disabled={isSubmitting}
-            className={`bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 ${
-              isSubmitting ? "opacity-70" : ""
-            }`}
-          >
-            {isSubmitting ? (
-              <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
-              </div>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4 mr-2" /> Save Changes
-              </>
-            )}
-          </Button>
+          {!ligne?.erpLineCode && (
+            <Button
+              onClick={handleUpdateLigne}
+              disabled={isSubmitting}
+              className={`bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 ${
+                isSubmitting ? "opacity-70" : ""
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </div>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Save Changes
+                </>
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

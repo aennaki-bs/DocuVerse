@@ -226,6 +226,7 @@ const LocationsManagement = ({ searchTerm = "" }: LocationsManagementProps) => {
             setIsCreateDialogOpen(true);
           }}
           className="bg-orange-600 hover:bg-orange-700 text-white"
+          disabled
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Location
@@ -356,6 +357,7 @@ const LocationsManagement = ({ searchTerm = "" }: LocationsManagementProps) => {
                                 size="sm"
                                 onClick={() => openDeleteDialog(location)}
                                 className="text-red-400 hover:text-red-300 hover:bg-red-900/40"
+                                disabled
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>

@@ -33,12 +33,13 @@ export function VendorBulkActionsBar({
           {/* Actions */}
           <div className="flex items-center gap-2">
             <Button
-              onClick={onDelete}
+              variant="outline"
               size="sm"
-              variant="destructive"
-              className="bg-red-600/80 hover:bg-red-700 text-white border-red-500/30 shadow-sm"
+              className="bg-red-900/40 border-red-500/40 text-red-200 hover:text-red-100 hover:bg-red-900/60 hover:border-red-400/60 transition-all duration-200 shadow-lg min-w-[80px] font-medium"
+              onClick={onDelete}
+              disabled
             >
-              <Trash2 className="h-4 w-4 mr-1.5" />
+              <Trash2 className="w-4 h-4 mr-1.5" />
               Delete
             </Button>
           </div>

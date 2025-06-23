@@ -35,6 +35,25 @@ const AddLineToErpButton: React.FC<AddLineToErpButtonProps> = ({
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [erpStatus, setErpStatus] = useState<ErpStatus | null>(null);
 
+  // Helper function to clean up raw JSON ERP codes
+  const parseErpLineCode = (rawCode: string): string => {
+    if (!rawCode) return '';
+    
+    // If it looks like JSON, try to parse it
+    if (rawCode.includes('"@odata.context"') || rawCode.includes('"value"')) {
+      try {
+        const parsed = JSON.parse(rawCode);
+        return parsed.value?.toString() || rawCode;
+      } catch {
+        // If parsing fails, return the raw code
+        return rawCode;
+      }
+    }
+    
+    // If it's already clean, return as-is
+    return rawCode;
+  };
+
   // Check if line can be added to ERP
   const checkErpStatus = async () => {
     try {
@@ -115,11 +134,12 @@ const AddLineToErpButton: React.FC<AddLineToErpButtonProps> = ({
 
   // Line is already in ERP
   if (erpStatus.lineErpCode) {
+    const cleanLineCode = parseErpLineCode(erpStatus.lineErpCode);
     return (
       <div className={`flex items-center gap-2 ${className}`}>
         <Badge variant="success" className="text-xs">
           <CheckCircle className="h-3 w-3 mr-1" />
-          In ERP: {erpStatus.lineErpCode}
+          In ERP: {cleanLineCode}
         </Badge>
       </div>
     );

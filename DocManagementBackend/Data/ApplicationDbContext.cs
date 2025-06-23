@@ -438,8 +438,9 @@ namespace DocManagementBackend.Data
                 .IsUnique()
                 .HasFilter("[ERPDocumentCode] IS NOT NULL");
 
+            // ERPLineCode should be unique per document, not globally unique
             modelBuilder.Entity<Ligne>()
-                .HasIndex(l => l.ERPLineCode)
+                .HasIndex(l => new { l.DocumentId, l.ERPLineCode })
                 .IsUnique()
                 .HasFilter("[ERPLineCode] IS NOT NULL");
 
