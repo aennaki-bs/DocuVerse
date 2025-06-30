@@ -42,10 +42,10 @@ namespace DocManagementBackend.Services
 
             var endpoints = new List<ApiEndpointConfig>
             {
-                new() { Name = "Items", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/items", Type = ApiEndpointType.Items, DefaultPollingIntervalMinutes = 10 },
-                new() { Name = "GeneralAccounts", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/accounts", Type = ApiEndpointType.GeneralAccounts, DefaultPollingIntervalMinutes = 10 },
-                new() { Name = "Customers", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/customers", Type = ApiEndpointType.Customers, DefaultPollingIntervalMinutes = 10 },
-                new() { Name = "Vendors", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/vendors", Type = ApiEndpointType.Vendors, DefaultPollingIntervalMinutes = 10 },
+                new() { Name = "Items", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/items", Type = ApiEndpointType.Items, DefaultPollingIntervalMinutes = 60 },
+                new() { Name = "GeneralAccounts", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/accounts", Type = ApiEndpointType.GeneralAccounts, DefaultPollingIntervalMinutes = 60 },
+                new() { Name = "Customers", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/customers", Type = ApiEndpointType.Customers, DefaultPollingIntervalMinutes = 60 },
+                new() { Name = "Vendors", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/vendors", Type = ApiEndpointType.Vendors, DefaultPollingIntervalMinutes = 60 },
                 new() { Name = "Locations", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/locations", Type = ApiEndpointType.Locations, DefaultPollingIntervalMinutes = 60 },
                 new() { Name = "ResponsibilityCentres", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/responsibilityCenters", Type = ApiEndpointType.ResponsibilityCentres, DefaultPollingIntervalMinutes = 60 },
                 new() { Name = "UnitOfMeasures", Url = "http://localhost:25048/BC250/api/bslink/docverse/v1.0/UnitofMeasures", Type = ApiEndpointType.UnitOfMeasures, DefaultPollingIntervalMinutes = 60 },
