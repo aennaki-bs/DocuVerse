@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import documentService from "@/services/documentService";
@@ -26,7 +26,8 @@ import { LoadingState } from "@/components/circuits/document-flow/LoadingState";
 import { NoCircuitAssignedCard } from "@/components/circuits/document-flow/NoCircuitAssignedCard";
 import { ErrorMessage } from "./ErrorMessage";
 import { DocumentApprovalStatus } from "@/components/document-flow/DocumentApprovalStatus";
-import { ApprovalHistoryComponent } from "../document-workflow/ApprovalHistory";
+import { ApprovalHistorySection } from '@/components/document-workflow/ApprovalHistory';
+import { useErpArchivalDetection } from '@/hooks/useErpArchivalDetection';
 
 interface WorkflowDialogProps {
   open: boolean;
@@ -65,6 +66,9 @@ export function WorkflowDialog({
     wasRejected,
   } = useDocumentApproval(documentId);
 
+  // Use ERP archival detection hook
+  const { startErpArchivalMonitoring } = useErpArchivalDetection();
+
   // Fetch the document information
   const {
     data: document,
@@ -77,8 +81,11 @@ export function WorkflowDialog({
   });
 
   // Handle move to status
-  const handleMoveToStatus = (statusId: number) => {
+  const handleMoveToStatus = async (statusId: number) => {
     if (workflowStatus && statusId) {
+      // Get document before status change to check if it might trigger ERP archival
+      const documentBeforeMove = document;
+      
       // Find the status title from available transitions
       let targetStatus = workflowStatus.availableStatusTransitions?.find(
         s => s.statusId === statusId
@@ -99,34 +106,46 @@ export function WorkflowDialog({
       
       const currentStatusTitle = workflowStatus.currentStatusTitle || 'Unknown Status';
       
-      circuitService
-        .moveToStatus(documentId, statusId, `Moving from ${currentStatusTitle} to ${targetStatusTitle}`)
-        .then((result) => {
-          // Only show one message based on the actual outcome
-          if (result.requiresApproval) {
-            // Only show approval message if approval is actually pending
-            toast.info("This step requires approval. An approval request has been initiated.");
-            // Trigger refresh of DocumentApprovalStatus
-            setApprovalRefreshTrigger(prev => prev + 1);
-          } else {
-            // Show success message if the move completed (including auto-approvals)
-            toast.success(result.message || "Document status updated successfully");
-          }
-          
-          refreshAllData();
-          
-          // Invalidate documents list cache to refresh the main document view
-          queryClient.invalidateQueries({ queryKey: ["documents"] });
-          queryClient.invalidateQueries({ queryKey: ["document", documentId] });
+      try {
+        const result = await circuitService.moveToStatus(documentId, statusId, `Moving from ${currentStatusTitle} to ${targetStatusTitle}`);
+        
+        // Only show one message based on the actual outcome
+        if (result.requiresApproval) {
+          // Only show approval message if approval is actually pending
+          toast.info("This step requires approval. An approval request has been initiated.");
+          // Trigger refresh of DocumentApprovalStatus
+          setApprovalRefreshTrigger(prev => prev + 1);
+        } else {
+          // Show success message if the move completed (including auto-approvals)
+          toast.success(result.message || "Document status updated successfully");
+        }
+        
+        refreshAllData();
+        
+        // Invalidate documents list cache to refresh the main document view
+        queryClient.invalidateQueries({ queryKey: ["documents"] });
+        queryClient.invalidateQueries({ queryKey: ["document", documentId] });
 
-          if (onWorkflowUpdate) {
-            onWorkflowUpdate();
-          }
-        })
-        .catch((error) => {
-          console.error("Error moving document to status:", error);
-          toast.error("Failed to update document status");
-        });
+        // Check if this move might have triggered ERP archival
+        if (documentBeforeMove && !documentBeforeMove.erpDocumentCode) {
+          // Start checking for ERP archival completion
+          setTimeout(() => {
+            startErpArchivalMonitoring(documentId, documentBeforeMove, () => {
+              refreshAllData();
+              if (onWorkflowUpdate) {
+                onWorkflowUpdate();
+              }
+            });
+          }, 2000); // Wait 2 seconds before starting to poll
+        }
+
+        if (onWorkflowUpdate) {
+          onWorkflowUpdate();
+        }
+      } catch (error) {
+        console.error("Error moving document to status:", error);
+        toast.error("Failed to update document status");
+      }
     }
   };
 

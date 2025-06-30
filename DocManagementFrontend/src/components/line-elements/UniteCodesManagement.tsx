@@ -760,17 +760,8 @@ const UniteCodesManagement = ({
                               variant="ghost"
                               size="sm"
                               onClick={() => openEditDialog(uniteCode)}
-                              disabled={uniteCode.itemsCount > 0}
-                              className={`h-8 w-8 p-0 ${
-                                uniteCode.itemsCount > 0
-                                  ? "opacity-50 cursor-not-allowed text-gray-500 dark:text-gray-400"
-                                  : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/30"
-                              }`}
-                              title={
-                                uniteCode.itemsCount > 0
-                                  ? "Cannot edit: Unit code is used in items"
-                                  : "Edit unit code"
-                              }
+                              className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/30"
+                              title="Edit unit code"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>

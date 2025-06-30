@@ -91,10 +91,8 @@ namespace DocManagementBackend.Services
                 {
                     _logger.LogWarning("Document {DocumentId} is already archived to ERP", documentId);
                     
-                    // Check if lines need to be created
-                    await CreateDocumentLinesInErpAsync(documentId);
-                    
-                    return true; // Return true for idempotency
+                    // Check if lines need to be created using the same scope
+                    return await CreateDocumentLinesInErpInternalAsync(documentId, context);
                 }
 
                 // Get document with all necessary relationships
@@ -126,10 +124,8 @@ namespace DocManagementBackend.Services
                     _logger.LogInformation("Document {DocumentId} successfully archived to ERP with code: {ErpCode}", 
                         documentId, erpDocumentCode);
                     
-                    // Now create the document lines in ERP
-                    await CreateDocumentLinesInErpAsync(documentId);
-                    
-                    return true;
+                    // Now create the document lines in ERP using the same scope
+                    return await CreateDocumentLinesInErpInternalAsync(documentId, context);
                 }
                 
                 _logger.LogError("Failed to archive document {DocumentId} to ERP - no document code returned", documentId);
@@ -147,6 +143,11 @@ namespace DocManagementBackend.Services
             using var scope = _serviceProvider.CreateScope();
             using var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             
+            return await CreateDocumentLinesInErpInternalAsync(documentId, context);
+        }
+
+        private async Task<bool> CreateDocumentLinesInErpInternalAsync(int documentId, ApplicationDbContext context)
+        {
             try
             {
                 _logger.LogInformation("Starting ERP line creation for document ID: {DocumentId}", documentId);
@@ -324,6 +325,13 @@ namespace DocManagementBackend.Services
                 uniteOfMeasure = ligne.UnitCode ?? ligne.Item?.Unite ?? "";
             }
 
+            // Get location code (note the API expects "locationCOde" with capital O)
+            string locationCode = ligne.LocationCode ?? "";
+
+            // Log detailed price information for debugging
+            _logger.LogInformation("Price Details for ligne {LigneId}: PriceHT={PriceHT}, OriginalPriceHT={OriginalPriceHT}, DiscountAmount={DiscountAmount}, TierType={TierType}", 
+                ligne.Id, ligne.PriceHT, ligne.OriginalPriceHT, ligne.DiscountAmount, tierType);
+
             var payload = new
             {
                 tierTYpe = tierType,
@@ -335,12 +343,20 @@ namespace DocManagementBackend.Services
                 qty = ligne.Quantity,
                 uniteOfMeasure = uniteOfMeasure,
                 unitpriceCOst = ligne.PriceHT,
-                discountAmt = ligne.DiscountAmount
+                discountAmt = ligne.DiscountAmount,
+                locationCOde = locationCode
             };
 
-            _logger.LogInformation("Built ERP line payload for ligne {LigneId}: Type={Type}, CodeLine={CodeLine}, Qty={Qty}", 
-                ligne.Id, type, codeLine, ligne.Quantity);
-            _logger.LogDebug("Full line payload: {Payload}", JsonSerializer.Serialize(payload));
+            _logger.LogInformation("Built ERP line payload for ligne {LigneId}: Type={Type}, CodeLine={CodeLine}, Qty={Qty}, LocationCode={LocationCode}, Price={Price}", 
+                ligne.Id, type, codeLine, ligne.Quantity, locationCode, ligne.PriceHT);
+            
+            // Enhanced payload logging with exact JSON that will be sent
+            var jsonForLogging = JsonSerializer.Serialize(payload, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            });
+            _logger.LogDebug("Full line payload JSON that will be sent to BC: {Payload}", jsonForLogging);
 
             return payload;
         }
@@ -421,7 +437,9 @@ namespace DocManagementBackend.Services
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 _logger.LogInformation("Making POST request to BC Line API: {Endpoint}", apiEndpoint);
-                _logger.LogDebug("Request line payload: {Payload}", json);
+                _logger.LogInformation("HTTP Headers: Content-Type={ContentType}, Content-Length={ContentLength}", 
+                    content.Headers.ContentType, content.Headers.ContentLength);
+                _logger.LogWarning("EXACT JSON PAYLOAD BEING SENT TO BC: {JsonPayload}", json);
 
                 var response = await _httpClient.PostAsync(apiEndpoint, content);
 
@@ -431,26 +449,37 @@ namespace DocManagementBackend.Services
                 {
                     _logger.LogInformation("BC Line API call successful. Response: {Response}", responseContent);
                     
-                    // The response should contain the line number
-                    // Parse the response to extract the line code
+                    // The CreateDocLine API returns an integer (Line No.) directly
                     if (!string.IsNullOrWhiteSpace(responseContent))
                     {
-                        // If response is JSON, try to parse it
+                        // Try to parse as JSON first (in case it's wrapped)
                         try
                         {
                             var responseObj = JsonSerializer.Deserialize<JsonElement>(responseContent);
                             if (responseObj.TryGetProperty("value", out var valueElement))
                             {
+                                // If it's in a JSON wrapper, extract the value
+                                if (valueElement.ValueKind == JsonValueKind.Number)
+                                {
+                                    return valueElement.GetInt32().ToString();
+                                }
                                 return valueElement.GetString();
                             }
-                            // If it's just a string value, return it directly
-                            return responseContent.Trim('"');
                         }
                         catch
                         {
-                            // If not JSON, return the content as-is (cleaned)
-                            return responseContent.Trim().Trim('"');
+                            // Not JSON, continue with direct parsing
                         }
+
+                        // Handle direct integer response
+                        var cleanResponse = responseContent.Trim().Trim('"');
+                        if (int.TryParse(cleanResponse, out var lineNumber))
+                        {
+                            return lineNumber.ToString();
+                        }
+                        
+                        // Fallback to string response
+                        return cleanResponse;
                     }
                     
                     return responseContent;

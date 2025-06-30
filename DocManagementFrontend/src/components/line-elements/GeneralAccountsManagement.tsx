@@ -616,17 +616,8 @@ const GeneralAccountsManagement = ({
                               variant="ghost"
                               size="sm"
                               onClick={() => openEditDialog(account)}
-                              disabled={account.lignesCount > 0}
-                              className={`h-8 w-8 p-0 ${
-                                account.lignesCount > 0
-                                  ? "opacity-50 cursor-not-allowed text-gray-500 dark:text-gray-400"
-                                  : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/30"
-                              }`}
-                              title={
-                                account.lignesCount > 0
-                                  ? "Cannot edit: Account is used in document lines"
-                                  : "Edit general account"
-                              }
+                              className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/30"
+                              title="Edit general account"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>

@@ -96,9 +96,58 @@ export function PersonalInfoForm({
       );
       logout(navigate); // Log out user as they need to verify new email
     } catch (error: any) {
-      const errorMessage =
-        error.response?.data || error.message || "Failed to update email";
+      console.error("Failed to update email:", error);
+
+      // Extract comprehensive error message from response
+      let errorMessage = "Failed to update email";
+      
+      if (error.response?.data) {
+        // Backend returns error message directly as string in response.data
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // Map common error codes to user-friendly messages
+      if (error.response?.status) {
+        switch (error.response.status) {
+          case 400:
+            if (errorMessage.includes("Email already in use") || errorMessage.includes("Email is already in use")) {
+              errorMessage = "This email address is already registered. Please choose a different email.";
+            } else if (errorMessage.includes("Email is required")) {
+              errorMessage = "Email address is required.";
+            } else if (errorMessage.includes("Request failed")) {
+              errorMessage = "Invalid email format. Please enter a valid email address.";
+            }
+            break;
+          case 401:
+            errorMessage = "Your session has expired. Please log in again.";
+            break;
+          case 403:
+            errorMessage = "You don't have permission to update your email.";
+            break;
+          case 409:
+            errorMessage = "This email address is already registered. Please choose a different email.";
+            break;
+          case 500:
+            errorMessage = "Server error occurred while updating your email. Please try again later.";
+            break;
+          case 503:
+            errorMessage = "Service temporarily unavailable. Please try again in a few moments.";
+            break;
+        }
+      }
+
       setApiError(errorMessage);
+      
+      // Also show a toast with the error
+      toast.error(errorMessage);
     }
   };
 

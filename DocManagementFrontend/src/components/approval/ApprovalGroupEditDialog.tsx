@@ -125,10 +125,19 @@ export default function ApprovalGroupEditDialog({
   const fetchAvailableUsers = async () => {
     try {
       setIsLoadingUsers(true);
-      const users = await approvalService.getAvailableApprovers();
-      setAvailableUsers(users);
+      // For editing approval groups, get all eligible approvers (all Admins and FullUsers)
+      // Then filter out users who are already in the current group
+      const allEligibleUsers = await approvalService.getEligibleApprovers();
+      
+      // Filter out users who are already in the current group
+      const currentGroupUserIds = group?.approvers?.map(a => a.userId) || [];
+      const availableUsers = allEligibleUsers.filter(
+        user => !currentGroupUserIds.includes(user.userId)
+      );
+      
+      setAvailableUsers(availableUsers);
     } catch (error) {
-      console.error("Failed to fetch available approvers:", error);
+      console.error("Failed to fetch available users:", error);
       toast.error("Failed to load users");
     } finally {
       setIsLoadingUsers(false);
@@ -158,28 +167,22 @@ export default function ApprovalGroupEditDialog({
         return true;
       case 3: // Select Users
         if (formData.selectedUsers.length === 0) {
-          if (formData.ruleType === "Sequential") {
-            toast.error(
-              "Sequential approval requires at least one user to define the approval order"
-            );
-          } else {
-            toast.error("Please select at least one user");
-          }
+          toast.error("Please select at least 2 users for the approval group");
+          return false;
+        }
+        if (formData.selectedUsers.length < 2) {
+          toast.error("Approval groups require a minimum of 2 users to be effective");
           return false;
         }
         return true;
       case 4: // Review
         // Final validation before submission
         if (formData.selectedUsers.length === 0) {
-          if (formData.ruleType === "Sequential") {
-            toast.error(
-              "Cannot update sequential approval group without users"
-            );
-          } else {
-            toast.error(
-              "Please select at least one user for the approval group"
-            );
-          }
+          toast.error("Please select at least 2 users for the approval group");
+          return false;
+        }
+        if (formData.selectedUsers.length < 2) {
+          toast.error("Cannot update approval group with less than 2 users");
           return false;
         }
         return true;
@@ -206,8 +209,8 @@ export default function ApprovalGroupEditDialog({
     if (!group) return;
 
     // Final validation before API call
-    if (formData.selectedUsers.length === 0) {
-      toast.error("Cannot update an approval group without members");
+    if (formData.selectedUsers.length < 2) {
+      toast.error("Cannot update an approval group with less than 2 members");
       return;
     }
 
@@ -427,7 +430,16 @@ export default function ApprovalGroupEditDialog({
               Cancel
             </Button>
             {currentStep < TOTAL_STEPS ? (
-              <Button type="button" onClick={nextStep} disabled={isSubmitting}>
+              <Button 
+                type="button" 
+                onClick={nextStep} 
+                disabled={isSubmitting || (currentStep === 3 && formData.selectedUsers.length < 2)}
+                title={
+                  currentStep === 3 && formData.selectedUsers.length < 2
+                    ? "Select at least 2 users to continue"
+                    : ""
+                }
+              >
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

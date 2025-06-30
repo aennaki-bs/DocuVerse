@@ -9,7 +9,7 @@ declare module 'axios' {
 }
 
 let port = 5205;
-// let address = '192.168.1.94';
+// let address = '192.168.1.54';
 // let address = '192.168.0.150';
 let address = 'localhost';
 // let address = '172.20.10.4';
@@ -19,7 +19,7 @@ let apiUrl = `http://${address}:${port}/api`;
 // Create axios instance with default configuration
 const api = axios.create({
   // Use the correct port for the API (5205) as seen in the network tab
-  // baseURL: import.meta.env.VITE_API_URL || 'http://192.168.1.94:5205/api',
+  // baseURL: import.meta.env.VITE_API_URL || 'http://192.168.1.54:5205/api',
   // baseURL: import.meta.env.VITE_API_URL || 'http://172.20.10.4:5205/api',
   baseURL: import.meta.env.VITE_API_URL || apiUrl,
   headers: {

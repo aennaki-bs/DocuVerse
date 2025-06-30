@@ -601,7 +601,7 @@ namespace DocManagementBackend.Services
                                     ApprovalWritingId = approvalWritingId,
                                     UserId = nextUser.UserId,
                                     IsApproved = true,
-                                    Comments = "Auto-approved as original requester when their turn arrived in sequence",
+                                    Comments = "Auto-approved as original requester",
                                     ResponseDate = DateTime.UtcNow
                                 };
                                 

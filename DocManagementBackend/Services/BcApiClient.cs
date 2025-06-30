@@ -140,8 +140,8 @@ namespace DocManagementBackend.Services
                         endpoint, content.Length);
                     
                     // Log first 200 characters of response for debugging
-                    var preview = content.Length > 200 ? content.Substring(0, 200) + "..." : content;
-                    _logger.LogDebug("Response preview: {Preview}", preview);
+                    // var preview = content.Length > 200 ? content.Substring(0, 200) + "..." : content;
+                    // _logger.LogDebug("Response preview: {Preview}", preview);
 
                     var options = new JsonSerializerOptions
                     {

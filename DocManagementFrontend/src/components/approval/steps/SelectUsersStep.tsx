@@ -125,9 +125,27 @@ export function SelectUsersStep({
       <div className="space-y-1">
         <h3 className="text-sm font-medium">Select Users</h3>
         <p className="text-xs text-muted-foreground">
-          Choose users who will be part of this approval group
+          Choose users who will be part of this approval group (minimum 2 users required)
         </p>
       </div>
+
+      {/* Minimum users requirement alert */}
+      {selectedUsers.length < 2 && (
+        <Alert
+          variant="default"
+          className="bg-blue-500/10 border-blue-500/30 py-1.5 px-3 text-xs"
+        >
+          <UserPlus className="h-3 w-3 text-blue-600" />
+          <AlertDescription className="text-blue-900 dark:text-blue-300 text-xs">
+            <span className="font-semibold">
+              {selectedUsers.length === 0 
+                ? "Select at least 2 users to create an effective approval group"
+                : `Select ${2 - selectedUsers.length} more user${2 - selectedUsers.length > 1 ? 's' : ''} to meet the minimum requirement`
+              }
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {isSequential && (
         <Alert

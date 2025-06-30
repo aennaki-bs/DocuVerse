@@ -40,7 +40,7 @@
         ],
         "items": [
           {
-            "url": "http://192.168.1.94:5205/api/",
+            "url": "http://192.168.1.54:5205/api/",
             "resolution": "Allowed"
           }
         ]
@@ -261,7 +261,7 @@
             "description": "Failed to load resource: the server responded with a status of 404 (Not Found)",
             "sourceLocation": {
               "type": "source-location",
-              "url": "http://192.168.1.94:5205/api/",
+              "url": "http://192.168.1.54:5205/api/",
               "urlProvider": "network",
               "line": 0,
               "column": 0
@@ -13023,7 +13023,7 @@
             "entity": "localhost"
           },
           {
-            "url": "http://192.168.1.94:5205/api/",
+            "url": "http://192.168.1.54:5205/api/",
             "sessionTargetType": "page",
             "protocol": "http/1.1",
             "rendererStartTime": 3948.188000023365,
@@ -13037,10 +13037,10 @@
             "resourceType": "XHR",
             "priority": "High",
             "experimentalFromMainFrame": true,
-            "entity": "192.168.1.94"
+            "entity": "192.168.1.54"
           },
           {
-            "url": "http://192.168.1.94:5205/api/",
+            "url": "http://192.168.1.54:5205/api/",
             "sessionTargetType": "page",
             "protocol": "http/1.1",
             "rendererStartTime": 3950.3740000128746,
@@ -13053,7 +13053,7 @@
             "mimeType": "",
             "resourceType": "Preflight",
             "priority": "High",
-            "entity": "192.168.1.94"
+            "entity": "192.168.1.54"
           }
         ],
         "debugData": {
@@ -13092,7 +13092,7 @@
             "rtt": 8.273
           },
           {
-            "origin": "http://192.168.1.94:5205",
+            "origin": "http://192.168.1.54:5205",
             "rtt": 0.8999999999999999
           },
           {
@@ -13139,7 +13139,7 @@
             "serverResponseTime": 8.766999999999971
           },
           {
-            "origin": "http://192.168.1.94:5205",
+            "origin": "http://192.168.1.54:5205",
             "serverResponseTime": 2.369
           }
         ],
@@ -13455,12 +13455,12 @@
             "blockingTime": 0,
             "transferSize": 186,
             "tbtImpact": 0,
-            "entity": "192.168.1.94",
+            "entity": "192.168.1.54",
             "subItems": {
               "type": "subitems",
               "items": [
                 {
-                  "url": "http://192.168.1.94:5205/api/",
+                  "url": "http://192.168.1.54:5205/api/",
                   "mainThreadTime": 0,
                   "blockingTime": 0,
                   "transferSize": 186,
@@ -53540,7 +53540,7 @@
                                     "isLongest": true,
                                     "children": {
                                       "11920.468": {
-                                        "url": "http://192.168.1.94:5205/api/",
+                                        "url": "http://192.168.1.54:5205/api/",
                                         "navStartToEndTime": 3965,
                                         "transferSize": 186,
                                         "isLongest": true,
@@ -55354,14 +55354,14 @@
         ],
         "items": [
           {
-            "entity": "192.168.1.94",
+            "entity": "192.168.1.54",
             "mainThreadTime": 0.12100005149841309,
             "transferSize": 186,
             "subItems": {
               "type": "subitems",
               "items": [
                 {
-                  "url": "http://192.168.1.94:5205/api/",
+                  "url": "http://192.168.1.54:5205/api/",
                   "mainThreadTime": 0.12100005149841309,
                   "transferSize": 186
                 }
@@ -56523,9 +56523,9 @@
       "isUnrecognized": true
     },
     {
-      "name": "192.168.1.94",
+      "name": "192.168.1.54",
       "origins": [
-        "http://192.168.1.94:5205"
+        "http://192.168.1.54:5205"
       ],
       "isUnrecognized": true
     }

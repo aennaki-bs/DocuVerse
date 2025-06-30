@@ -166,32 +166,80 @@ export function DirectEditUserEmailModal({
     } catch (error: any) {
       console.error("Failed to update email:", error);
 
-      // Show meaningful error based on error code or message
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "An unknown error occurred";
+      // Extract comprehensive error message from response
+      let errorMessage = "An unknown error occurred";
+      
+      if (error.response?.data) {
+        // Backend returns error message directly as string in response.data
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
 
-      setFormError(`Failed to update email: ${errorMessage}`);
+      // Map common error codes to user-friendly messages
+      if (error.response?.status) {
+        switch (error.response.status) {
+          case 400:
+            if (!errorMessage || errorMessage.includes("Request failed")) {
+              if (errorMessage.includes("Email is already in use") || errorMessage.includes("Email already in use")) {
+                errorMessage = "This email address is already registered in the system. Please choose a different email.";
+              } else {
+                errorMessage = "Invalid request. Please check the email format and try again.";
+              }
+            }
+            break;
+          case 401:
+            errorMessage = "You are not authorized to perform this action. Please log in again.";
+            break;
+          case 403:
+            errorMessage = "You don't have permission to update this user's email.";
+            break;
+          case 404:
+            errorMessage = "User not found. The user may have been deleted.";
+            break;
+          case 409:
+            errorMessage = "This email address is already registered in the system. Please choose a different email.";
+            break;
+          case 500:
+            errorMessage = "Server error occurred while updating the email. Please try again later.";
+            break;
+          case 503:
+            errorMessage = "Service temporarily unavailable. Please try again in a few moments.";
+            break;
+        }
+      }
 
-      // Enhanced error toast
+      setFormError(errorMessage);
+
+      // Enhanced error toast with more detailed message
       toast.custom(
         (t) => (
-          <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 rounded-lg shadow-lg border border-red-500/30 flex items-start gap-3">
+          <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 rounded-lg shadow-lg border border-red-500/30 flex items-start gap-3 max-w-md">
             <XCircle className="h-6 w-6 text-red-200 flex-shrink-0 mt-0.5" />
-            <div>
+            <div className="flex-1">
               <h3 className="font-medium mb-1">Email Update Failed</h3>
-              <p className="text-sm text-red-100">{errorMessage}</p>
+              <p className="text-sm text-red-100 break-words">{errorMessage}</p>
+              {error.response?.status && (
+                <p className="text-xs text-red-200 mt-1 opacity-75">
+                  Error Code: {error.response.status}
+                </p>
+              )}
             </div>
             <button
               onClick={() => toast.dismiss(t)}
-              className="ml-auto text-red-200 hover:text-white"
+              className="ml-auto text-red-200 hover:text-white flex-shrink-0"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
         ),
-        { duration: 7000 }
+        { duration: 8000 }
       );
     } finally {
       setIsSubmitting(false);

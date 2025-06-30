@@ -44,7 +44,7 @@
         ],
         "items": [
           {
-            "url": "http://192.168.1.94:5205/api/",
+            "url": "http://192.168.1.54:5205/api/",
             "resolution": "Allowed"
           }
         ]
@@ -265,7 +265,7 @@
             "description": "Failed to load resource: the server responded with a status of 404 (Not Found)",
             "sourceLocation": {
               "type": "source-location",
-              "url": "http://192.168.1.94:5205/api/",
+              "url": "http://192.168.1.54:5205/api/",
               "urlProvider": "network",
               "line": 0,
               "column": 0
@@ -13010,7 +13010,7 @@
             "entity": "localhost"
           },
           {
-            "url": "http://192.168.1.94:5205/api/",
+            "url": "http://192.168.1.54:5205/api/",
             "sessionTargetType": "page",
             "protocol": "http/1.1",
             "rendererStartTime": 9189.643999993801,
@@ -13024,10 +13024,10 @@
             "resourceType": "XHR",
             "priority": "High",
             "experimentalFromMainFrame": true,
-            "entity": "192.168.1.94"
+            "entity": "192.168.1.54"
           },
           {
-            "url": "http://192.168.1.94:5205/api/",
+            "url": "http://192.168.1.54:5205/api/",
             "sessionTargetType": "page",
             "protocol": "http/1.1",
             "rendererStartTime": 9191.811000019312,
@@ -13040,7 +13040,7 @@
             "mimeType": "",
             "resourceType": "Preflight",
             "priority": "High",
-            "entity": "192.168.1.94"
+            "entity": "192.168.1.54"
           }
         ],
         "debugData": {
@@ -13083,7 +13083,7 @@
             "rtt": 0.8999999999999999
           },
           {
-            "origin": "http://192.168.1.94:5205",
+            "origin": "http://192.168.1.54:5205",
             "rtt": 0.8999999999999999
           }
         ],
@@ -13126,7 +13126,7 @@
             "serverResponseTime": 15.334000000000037
           },
           {
-            "origin": "http://192.168.1.94:5205",
+            "origin": "http://192.168.1.54:5205",
             "serverResponseTime": 6.927499999999999
           }
         ],
@@ -13522,12 +13522,12 @@
             "blockingTime": 0,
             "transferSize": 186,
             "tbtImpact": 0,
-            "entity": "192.168.1.94",
+            "entity": "192.168.1.54",
             "subItems": {
               "type": "subitems",
               "items": [
                 {
-                  "url": "http://192.168.1.94:5205/api/",
+                  "url": "http://192.168.1.54:5205/api/",
                   "mainThreadTime": 0,
                   "blockingTime": 0,
                   "transferSize": 186,
@@ -48450,7 +48450,7 @@
                                     "isLongest": true,
                                     "children": {
                                       "13220.467": {
-                                        "url": "http://192.168.1.94:5205/api/",
+                                        "url": "http://192.168.1.54:5205/api/",
                                         "navStartToEndTime": 9228,
                                         "transferSize": 186,
                                         "isLongest": true,
@@ -50276,14 +50276,14 @@
         ],
         "items": [
           {
-            "entity": "192.168.1.94",
+            "entity": "192.168.1.54",
             "mainThreadTime": 0.17800003290176392,
             "transferSize": 186,
             "subItems": {
               "type": "subitems",
               "items": [
                 {
-                  "url": "http://192.168.1.94:5205/api/",
+                  "url": "http://192.168.1.54:5205/api/",
                   "mainThreadTime": 0.17800003290176392,
                   "transferSize": 186
                 }
@@ -51445,9 +51445,9 @@
       "isUnrecognized": true
     },
     {
-      "name": "192.168.1.94",
+      "name": "192.168.1.54",
       "origins": [
-        "http://192.168.1.94:5205"
+        "http://192.168.1.54:5205"
       ],
       "isUnrecognized": true
     }
