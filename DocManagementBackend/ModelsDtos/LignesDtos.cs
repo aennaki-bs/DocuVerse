@@ -30,6 +30,38 @@ namespace DocManagementBackend.Models
         public string? ErrorMessage { get; set; }
     }
 
+    // Enhanced ERP operation result for detailed error reporting
+    public class ErpOperationResult
+    {
+        public bool IsSuccess { get; set; }
+        public string? Value { get; set; }  // ERP code or line number on success
+        public string? ErrorMessage { get; set; }
+        public string? ErrorDetails { get; set; }  // Detailed technical error info
+        public int? StatusCode { get; set; }  // HTTP status code if applicable
+        public string? ErrorType { get; set; }  // Category of error (e.g., "ValidationError", "NetworkError", "AuthenticationError")
+        
+        public static ErpOperationResult Success(string value)
+        {
+            return new ErpOperationResult
+            {
+                IsSuccess = true,
+                Value = value
+            };
+        }
+        
+        public static ErpOperationResult Failure(string errorMessage, string? errorDetails = null, int? statusCode = null, string? errorType = null)
+        {
+            return new ErpOperationResult
+            {
+                IsSuccess = false,
+                ErrorMessage = errorMessage,
+                ErrorDetails = errorDetails,
+                StatusCode = statusCode,
+                ErrorType = errorType ?? "UnknownError"
+            };
+        }
+    }
+
     public class LigneDto
     {
         public int Id { get; set; }

@@ -8,6 +8,7 @@ using DocManagementBackend.Mappings;
 using DocManagementBackend.Services;
 // using DocManagementBackend.ModelsDtos;
 using DocManagementBackend.Utils;
+using System.Text;
 
 namespace DocManagementBackend.Controllers
 {
@@ -215,9 +216,14 @@ namespace DocManagementBackend.Controllers
                 if (subType.DocumentTypeId != request.TypeId)
                     return BadRequest("Selected SubType does not belong to the selected Document Type!");
 
-                var documentDate = request.DocDate ?? DateTime.UtcNow;
-                if (documentDate < subType.StartDate || documentDate > subType.EndDate)
-                    return BadRequest($"Document date ({documentDate:d}) must be within the selected SubType date range ({subType.StartDate:d} to {subType.EndDate:d})");
+                var documentDate = (request.DocDate ?? DateTime.UtcNow).Date;
+                var subTypeStartDate = subType.StartDate.Date;
+                var subTypeEndDate = subType.EndDate.Date;
+                
+                Console.WriteLine($"[DEBUG] Document creation validation: docDate={documentDate:yyyy-MM-dd}, subTypeStart={subTypeStartDate:yyyy-MM-dd}, subTypeEnd={subTypeEndDate:yyyy-MM-dd}");
+                
+                if (documentDate < subTypeStartDate || documentDate > subTypeEndDate)
+                    return BadRequest($"Document date ({documentDate:d}) must be within the selected SubType date range ({subTypeStartDate:d} to {subTypeEndDate:d})");
             }
 
             var docDate = request.DocDate ?? DateTime.UtcNow;
@@ -404,8 +410,14 @@ namespace DocManagementBackend.Controllers
                 }
 
                 // Verify DocDate falls within SubType date range
-                if (document.DocDate < subType.StartDate || document.DocDate > subType.EndDate)
-                    return BadRequest($"Document date ({document.DocDate:d}) must be within the selected SubType date range ({subType.StartDate:d} to {subType.EndDate:d})");
+                var docDate = document.DocDate.Date;
+                var subTypeStartDate = subType.StartDate.Date;
+                var subTypeEndDate = subType.EndDate.Date;
+                
+                Console.WriteLine($"[DEBUG] Document update validation: docDate={docDate:yyyy-MM-dd}, subTypeStart={subTypeStartDate:yyyy-MM-dd}, subTypeEnd={subTypeEndDate:yyyy-MM-dd}");
+                
+                if (docDate < subTypeStartDate || docDate > subTypeEndDate)
+                    return BadRequest($"Document date ({docDate:d}) must be within the selected SubType date range ({subTypeStartDate:d} to {subTypeEndDate:d})");
 
                 document.SubTypeId = request.SubTypeId;
                 document.SubType = subType;
@@ -696,7 +708,6 @@ namespace DocManagementBackend.Controllers
                 var type = await _context.DocumentTypes.FirstOrDefaultAsync(t => t.TypeName.ToLower() == typeName);
                 if (type != null && type.Id != ThisType.Id)
                     return BadRequest("TypeName already exist");
-                // if ()
                 ThisType.TypeName = request.TypeName;
             }
             if (!string.IsNullOrEmpty(request.TypeAttr))
@@ -830,6 +841,25 @@ namespace DocManagementBackend.Controllers
 
             try
             {
+                // Check for ERP-archived documents before attempting deletion
+                var documentsToCheck = await _context.Documents
+                    .Where(d => documentIds.Contains(d.Id))
+                    .Select(d => new { d.Id, d.ERPDocumentCode, d.DocumentKey, d.Status })
+                    .ToListAsync();
+
+                var erpArchivedDocs = documentsToCheck
+                    .Where(d => !string.IsNullOrEmpty(d.ERPDocumentCode))
+                    .ToList();
+
+                // Enhanced debug logging
+                Console.WriteLine($"[DEBUG] Bulk delete request for {documentIds.Count} documents");
+                foreach (var doc in documentsToCheck)
+                {
+                    var isErpArchived = !string.IsNullOrEmpty(doc.ERPDocumentCode);
+                    Console.WriteLine($"[DEBUG] Document {doc.Id} ({doc.DocumentKey}) - Status: {doc.Status}, ERPCode: '{doc.ERPDocumentCode ?? "NULL"}', IsErpArchived: {isErpArchived}");
+                }
+                Console.WriteLine($"[DEBUG] Found {erpArchivedDocs.Count} ERP-archived documents out of {documentsToCheck.Count} total");
+
                 // Log the bulk deletion attempt
                 var logEntry = new LogHistory
                 {
@@ -845,14 +875,42 @@ namespace DocManagementBackend.Controllers
                 // Use the workflow service's bulk delete method
                 var (successCount, failedIds) = await _workflowService.DeleteMultipleDocumentsAsync(documentIds);
 
-                // Log the result
+                // Categorize failed documents
+                var erpArchivedFailedDocs = erpArchivedDocs
+                    .Where(d => failedIds.Contains(d.Id))
+                    .ToList();
+
+                var otherFailedIds = failedIds
+                    .Where(id => !erpArchivedFailedDocs.Any(d => d.Id == id))
+                    .ToList();
+
+                // Build detailed message
+                var messageBuilder = new StringBuilder();
+                if (successCount > 0)
+                {
+                    messageBuilder.Append($"Successfully deleted {successCount} documents");
+                }
+
+                if (erpArchivedFailedDocs.Any())
+                {
+                    if (messageBuilder.Length > 0) messageBuilder.Append(". ");
+                    messageBuilder.Append($"{erpArchivedFailedDocs.Count} documents could not be deleted because they are archived to ERP");
+                }
+
+                if (otherFailedIds.Any())
+                {
+                    if (messageBuilder.Length > 0) messageBuilder.Append(". ");
+                    messageBuilder.Append($"{otherFailedIds.Count} documents failed for other reasons");
+                }
+
+                // Log the result with detailed information
                 var resultLogEntry = new LogHistory
                 {
                     UserId = userId,
                     User = user,
                     Timestamp = DateTime.UtcNow,
                     ActionType = 6,
-                    Description = $"{user.Username} bulk delete completed: {successCount} successful, {failedIds.Count} failed"
+                    Description = $"{user.Username} bulk delete completed: {successCount} successful, {erpArchivedFailedDocs.Count} ERP-archived (protected), {otherFailedIds.Count} other failures"
                 };
                 _context.LogHistories.Add(resultLogEntry);
                 await _context.SaveChangesAsync();
@@ -861,9 +919,16 @@ namespace DocManagementBackend.Controllers
                 {
                     return Ok(new 
                     { 
-                        message = $"Partially completed: {successCount} documents deleted successfully, {failedIds.Count} failed",
+                        message = messageBuilder.ToString(),
                         successCount = successCount,
                         failedIds = failedIds,
+                        erpArchivedCount = erpArchivedFailedDocs.Count,
+                        erpArchivedDocuments = erpArchivedFailedDocs.Select(d => new { 
+                            id = d.Id, 
+                            documentKey = d.DocumentKey, 
+                            erpCode = d.ERPDocumentCode 
+                        }),
+                        otherFailedCount = otherFailedIds.Count,
                         totalRequested = documentIds.Count
                     });
                 }
@@ -1102,7 +1167,10 @@ namespace DocManagementBackend.Controllers
                 }
                 else
                 {
-                    return StatusCode(500, "Failed to archive document to ERP. Check logs for details.");
+                    return StatusCode(500, new { 
+                        message = "Failed to archive document to ERP. Check logs for details.",
+                        errorType = "ErpArchivalError"
+                    });
                 }
             }
             catch (Exception ex)
@@ -1161,7 +1229,10 @@ namespace DocManagementBackend.Controllers
                 }
                 else
                 {
-                    return StatusCode(500, "Failed to create some or all document lines in ERP. Check logs for details.");
+                    return StatusCode(500, new { 
+                        message = "Failed to create some or all document lines in ERP. Check logs for details.",
+                        errorType = "ErpLineCreationError"
+                    });
                 }
             }
             catch (Exception ex)
@@ -1265,6 +1336,42 @@ namespace DocManagementBackend.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error during bulk ERP line fix: {ex.Message}");
+            }
+        }
+
+        // Debug endpoint to check ERP archival status
+        [HttpPost("check-erp-status")]
+        public async Task<IActionResult> CheckErpStatus([FromBody] List<int> documentIds)
+        {
+            var authResult = await _authService.AuthorizeUserAsync(User, new[] { "Admin", "FullUser" });
+            if (!authResult.IsAuthorized)
+                return authResult.ErrorResponse!;
+
+            try
+            {
+                var documents = await _context.Documents
+                    .Where(d => documentIds.Contains(d.Id))
+                    .Select(d => new { 
+                        d.Id, 
+                        d.DocumentKey, 
+                        d.Status, 
+                        d.ERPDocumentCode,
+                        IsErpArchived = !string.IsNullOrEmpty(d.ERPDocumentCode),
+                        d.IsCircuitCompleted,
+                        d.UpdatedAt
+                    })
+                    .ToListAsync();
+
+                return Ok(new { 
+                    message = "ERP archival status check",
+                    requestedCount = documentIds.Count,
+                    foundCount = documents.Count,
+                    documents = documents
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error checking ERP status: {ex.Message}");
             }
         }
     }

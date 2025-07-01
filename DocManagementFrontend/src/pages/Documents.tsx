@@ -355,10 +355,45 @@ const Documents = () => {
             tWithParams("documents.documentsDeletedSimulated", { count: selectedDocuments.length })
           );
         } else {
-          await documentService.deleteMultipleDocuments(selectedDocuments);
-          toast.success(
-            tWithParams("documents.documentsDeleted", { count: selectedDocuments.length })
-          );
+          try {
+            await documentService.deleteMultipleDocuments(selectedDocuments);
+            toast.success(
+              tWithParams("documents.documentsDeleted", { count: selectedDocuments.length })
+            );
+          } catch (error: any) {
+            // Handle partial success with detailed information
+            if (error.results) {
+              const { successful, failed, erpArchivedCount = 0, erpArchivedDocuments = [] } = error.results;
+              
+              // Show success message if any documents were deleted
+              if (successful.length > 0) {
+                toast.success(
+                  tWithParams("documents.documentsDeleted", { count: successful.length })
+                );
+              }
+              
+              // Show specific error for ERP-archived documents
+              if (erpArchivedCount > 0) {
+                toast.error(
+                  `${erpArchivedCount} document${erpArchivedCount !== 1 ? 's' : ''} could not be deleted because they are archived to ERP`,
+                  { duration: 6000 }
+                );
+              }
+              
+              // Show generic error for other failures
+              const otherFailures = failed.length - erpArchivedCount;
+              if (otherFailures > 0) {
+                toast.error(
+                  `${otherFailures} document${otherFailures !== 1 ? 's' : ''} failed to delete for other reasons`,
+                  { duration: 4000 }
+                );
+              }
+            } else {
+              // Generic error message
+              toast.error(error.message || t("documents.failedToDelete"));
+            }
+            throw error; // Re-throw to be caught by outer catch block
+          }
         }
         setSelectedDocuments([]);
       }
@@ -368,9 +403,12 @@ const Documents = () => {
       } else {
         setTotalPages(Math.ceil(documents.length / pageSize));
       }
-    } catch (error) {
-      console.error("Failed to delete document(s):", error);
-      toast.error(t("documents.failedToDelete"));
+    } catch (error: any) {
+      // Only show generic error if we haven't already shown specific errors above
+      if (!error.results) {
+        console.error("Failed to delete document(s):", error);
+        toast.error(t("documents.failedToDelete"));
+      }
     } finally {
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);

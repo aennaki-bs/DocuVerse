@@ -496,12 +496,22 @@ export default function CreateDocumentWizard({
 
     // Filter subtypes based on date range
     const docDate = new Date(selectedDate);
+    docDate.setHours(0, 0, 0, 0); // Normalize time
+    
     return allSubtypes.filter((subtype) => {
       const startDate = new Date(subtype.startDate);
       const endDate = new Date(subtype.endDate);
+      
+      // Normalize dates to avoid timezone issues
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
 
+      const isValid = docDate >= startDate && docDate <= endDate;
+      
+      console.log(`[DEBUG] Fallback filter - ${subtype.subTypeKey}: docDate=${docDate.toISOString()}, start=${startDate.toISOString()}, end=${endDate.toISOString()}, valid=${isValid}`);
+      
       // Check if document date falls within the subtype's valid date range
-      return docDate >= startDate && docDate <= endDate;
+      return isValid;
     });
   };
 
@@ -609,12 +619,22 @@ export default function CreateDocumentWizard({
       const startDate = new Date(selectedSubType.startDate);
       const endDate = new Date(selectedSubType.endDate);
 
+      // Normalize dates to avoid timezone issues
+      docDate.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+
+      console.log('[DEBUG] Date validation:', {
+        docDate: docDate.toISOString(),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        isValid: docDate >= startDate && docDate <= endDate
+      });
+
       if (docDate < startDate || docDate > endDate) {
         setSubTypeError("Subtype not valid for selected date");
-        toast.error("Subtype not valid for selected date", {
-          description: `The selected subtype is only valid from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}.`,
-          duration: 4000,
-        });
+        // Remove duplicate toast - this validation is also called elsewhere
+        console.log('[DEBUG] Date validation failed in wizard');
         return false;
       }
     } catch (error) {
@@ -1019,15 +1039,15 @@ export default function CreateDocumentWizard({
             transition={{ duration: 0.2 }}
           >
             <div className="space-y-4 py-4">
-              <ResponsibilityCentreStep
-                selectedCentreId={formData.responsibilityCentreId || undefined}
-                onCentreChange={handleResponsibilityCentreChange}
-                userHasCentre={!!formData.responsibilityCentreId}
-                userCentreName={getSelectedResponsibilityCentreName()}
-                isLoading={isLoading}
-                responsibilityCentres={responsibilityCentres}
-                onRetryFetch={retryFetchResponsibilityCentres}
-              />
+                          <ResponsibilityCentreStep
+              selectedCentreId={formData.responsibilityCentreId || undefined}
+              onCentreChange={handleResponsibilityCentreChange}
+              userHasCentre={userHasResponsibilityCentre}
+              userCentreName={getSelectedResponsibilityCentreName()}
+              isLoading={isLoading}
+              responsibilityCentres={responsibilityCentres}
+              onRetryFetch={retryFetchResponsibilityCentres}
+            />
             </div>
           </MotionDiv>
         );

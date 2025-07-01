@@ -137,27 +137,61 @@ const DocumentsPage = () => {
             );
           }
         } catch (error: any) {
-          // Handle partial success/failure
+          // Handle partial success/failure with enhanced ERP archival information
           if (error.results) {
-            const { successful, failed } = error.results;
+            const { successful, failed, erpArchivedCount = 0, erpArchivedDocuments = [] } = error.results;
 
             if (successful.length > 0 && failed.length > 0) {
               // Partial success
               toast.success(
                 tWithParams("documents.documentsDeleted", { count: successful.length })
               );
-              toast.error(
-                tWithParams("documents.failedToDeleteSome", { count: failed.length })
-              );
+              
+              // Show specific error for ERP-archived documents
+              if (erpArchivedCount > 0) {
+                toast.error(
+                  `${erpArchivedCount} document${erpArchivedCount !== 1 ? 's' : ''} could not be deleted because they are archived to ERP`,
+                  { duration: 6000 }
+                );
+              }
+              
+              // Show generic error for other failures
+              const otherFailures = failed.length - erpArchivedCount;
+              if (otherFailures > 0) {
+                toast.error(
+                  `${otherFailures} document${otherFailures !== 1 ? 's' : ''} failed to delete for other reasons`,
+                  { duration: 4000 }
+                );
+              }
             } else if (successful.length === 0) {
-              // Complete failure
-              toast.error(
-                tWithParams("documents.failedToDeleteAll", { count: failed.length })
-              );
+              // Complete failure - categorize the failures
+              if (erpArchivedCount === failed.length) {
+                // All failures were due to ERP archival
+                toast.error(
+                  `Cannot delete ${erpArchivedCount} document${erpArchivedCount !== 1 ? 's' : ''} - they are archived to ERP`,
+                  { duration: 6000 }
+                );
+              } else if (erpArchivedCount > 0) {
+                // Mixed failure reasons
+                toast.error(
+                  `${erpArchivedCount} document${erpArchivedCount !== 1 ? 's' : ''} are archived to ERP, ${failed.length - erpArchivedCount} failed for other reasons`,
+                  { duration: 6000 }
+                );
+              } else {
+                // No ERP archival issues, generic failure
+                toast.error(
+                  tWithParams("documents.failedToDeleteAll", { count: failed.length })
+                );
+              }
             }
           } else {
-            // Generic error
-            toast.error(t("documents.deleteError"));
+            // Generic error - check if it mentions ERP archival
+            const errorMessage = error.message || t("documents.deleteError");
+            if (errorMessage.includes('archived to ERP')) {
+              toast.error(errorMessage, { duration: 6000 });
+            } else {
+              toast.error(errorMessage);
+            }
           }
 
           // Don't return early - we still want to clean up the UI state

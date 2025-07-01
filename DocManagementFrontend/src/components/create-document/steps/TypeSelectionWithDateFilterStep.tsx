@@ -72,8 +72,16 @@ export const TypeSelectionWithDateFilterStep = ({
   // Custom select state
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const [subtypeDropdownOpen, setSubtypeDropdownOpen] = useState(false);
+  const [hasShownDateError, setHasShownDateError] = useState(false);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const subtypeDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Reset flags when date or type changes (but not when subtype changes to avoid infinite loops)
+  useEffect(() => {
+    setHasShownDateError(false);
+    setHasAutoSelected(false);
+  }, [documentDate, selectedTypeId]);
 
   const selectedType = selectedTypeId
     ? documentTypes.find((type) => type.id === selectedTypeId)
@@ -266,10 +274,11 @@ export const TypeSelectionWithDateFilterStep = ({
               setFilteredSubTypes(activeSeries);
               setNoSubTypesAvailable(false);
 
-              // Auto-select if there's only one active series
-              if (activeSeries.length === 1 && !selectedSubTypeId) {
+              // Auto-select if there's only one active series (and we haven't already auto-selected)
+              if (activeSeries.length === 1 && !selectedSubTypeId && !hasAutoSelected) {
                 const autoSelectedSeries = activeSeries[0];
                 console.log('Auto-selecting single available series:', autoSelectedSeries.subTypeKey);
+                setHasAutoSelected(true); // Set flag before calling onSubTypeChange to prevent re-triggering
                 onSubTypeChange(autoSelectedSeries.id?.toString() || "");
                 toast.success(
                   `Series "${autoSelectedSeries.subTypeKey}" automatically selected`,
@@ -292,18 +301,7 @@ export const TypeSelectionWithDateFilterStep = ({
               );
             }
 
-            // If the currently selected series is not valid for this date, clear it
-            if (
-              selectedSubTypeId &&
-              !activeSeries.find((s) => s.id === selectedSubTypeId)
-            ) {
-              onSubTypeChange("");
-              toast.info("Selected series is not valid for the chosen date", {
-                description:
-                  "Your selection has been reset. Please choose from available series.",
-                duration: 3000,
-              });
-            }
+            // Note: Invalid subtype handling is now done in a separate useEffect to avoid infinite loops
           } else {
             console.error("Invalid response format:", response.data);
             setFilteredSubTypes([]);
@@ -329,7 +327,30 @@ export const TypeSelectionWithDateFilterStep = ({
       setFilteredSubTypes([]);
       setNoSubTypesAvailable(false);
     }
-  }, [selectedTypeId, documentDate, selectedSubTypeId, onSubTypeChange]);
+  }, [selectedTypeId, documentDate, onSubTypeChange, hasAutoSelected]);
+
+  // Handle invalid subtype selection separately to avoid infinite loops
+  useEffect(() => {
+    if (
+      selectedSubTypeId &&
+      filteredSubTypes.length > 0 &&
+      !filteredSubTypes.find((s) => s.id === selectedSubTypeId)
+    ) {
+      onSubTypeChange("");
+      // Only show error if we haven't shown it recently
+      if (!hasShownDateError) {
+        setHasShownDateError(true);
+        toast.error("Subtype not valid for selected date", {
+          description:
+            "The selected subtype is only valid for a different date range.",
+          duration: 6000,
+        });
+        
+        // Reset the flag after a delay to allow showing the error again if needed
+        setTimeout(() => setHasShownDateError(false), 10000);
+      }
+    }
+  }, [selectedSubTypeId, filteredSubTypes, hasShownDateError, onSubTypeChange]);
 
   const handleTypeSelect = (typeId: string) => {
     onTypeChange(typeId);

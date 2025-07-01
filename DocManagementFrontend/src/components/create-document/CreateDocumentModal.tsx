@@ -481,8 +481,8 @@ export const CreateDocumentModal = ({
               ) {
                 const errorMessage = `Date must be within the subtype date range (${subTypeStartDate.toLocaleDateString()} - ${subTypeEndDate.toLocaleDateString()})`;
                 setDateError(errorMessage);
-                toast.error(errorMessage);
-                console.log("Date validation failed:", errorMessage);
+                // Remove duplicate toast - validation happens elsewhere too
+                console.log("[DEBUG] Date validation failed in modal:", errorMessage);
                 return false;
               }
 

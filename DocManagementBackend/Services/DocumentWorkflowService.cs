@@ -1424,11 +1424,46 @@ namespace DocManagementBackend.Services
             
             try
             {
-                // Get all documents to delete and group by TypeId for efficient counter updates
-                var documentsToDelete = await _context.Documents
+                // Get all documents to check which ones can be deleted
+                var allDocuments = await _context.Documents
                     .Where(d => documentIds.Contains(d.Id))
-                    .Select(d => new { d.Id, d.TypeId })
+                    .Select(d => new { d.Id, d.TypeId, d.ERPDocumentCode, d.DocumentKey, d.Status })
                     .ToListAsync();
+
+                if (!allDocuments.Any())
+                {
+                    await transaction.RollbackAsync();
+                    return (0, documentIds);
+                }
+
+                // Enhanced debug logging in workflow service
+                Console.WriteLine($"[DEBUG WorkflowService] Processing {allDocuments.Count} documents for deletion");
+                foreach (var doc in allDocuments)
+                {
+                    var isErpArchived = !string.IsNullOrEmpty(doc.ERPDocumentCode);
+                    Console.WriteLine($"[DEBUG WorkflowService] Document {doc.Id} ({doc.DocumentKey}) - Status: {doc.Status}, ERPCode: '{doc.ERPDocumentCode ?? "NULL"}', IsErpArchived: {isErpArchived}");
+                }
+
+                // Filter out documents that are archived to ERP
+                var documentsToDelete = allDocuments
+                    .Where(d => string.IsNullOrEmpty(d.ERPDocumentCode))
+                    .ToList();
+                
+                var erpArchivedDocuments = allDocuments
+                    .Where(d => !string.IsNullOrEmpty(d.ERPDocumentCode))
+                    .Select(d => d.Id)
+                    .ToList();
+                
+                Console.WriteLine($"[DEBUG WorkflowService] {documentsToDelete.Count} documents can be deleted, {erpArchivedDocuments.Count} are ERP-archived");
+                
+                // Add ERP archived documents to failed list
+                failedIds.AddRange(erpArchivedDocuments);
+                
+                if (erpArchivedDocuments.Any())
+                {
+                    _logger.LogWarning("Attempted to delete {Count} ERP-archived documents. Document IDs: {DocumentIds}", 
+                        erpArchivedDocuments.Count, string.Join(", ", erpArchivedDocuments));
+                }
 
                 if (!documentsToDelete.Any())
                 {
@@ -1565,6 +1600,15 @@ namespace DocManagementBackend.Services
                 var document = await _context.Documents.FindAsync(documentId);
                 if (document == null)
                     return false; // Document not found
+                
+                // Check if document is archived to ERP
+                if (!string.IsNullOrEmpty(document.ERPDocumentCode))
+                {
+                    _logger.LogWarning("Attempted to delete ERP-archived document {DocumentId} with ERP code: {ERPCode}", 
+                        documentId, document.ERPDocumentCode);
+                    await transaction.RollbackAsync();
+                    return false; // Cannot delete ERP-archived documents
+                }
                 
                 // Update the document type counter first (within transaction)
                 // Refresh the entity to get the latest counter value to prevent lost updates

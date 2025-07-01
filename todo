@@ -61,3 +61,8 @@ Problems faced:
     - ERPCreateDocument: the document Date when typeTier is 1, the document date is stored as posting date.
     - ERPCreateDocumentLine: some of the general accounts are not stored, same as the locations.
                 about purchase tier: the priceHT should be stored as unit Cost (LCY) or Direct Unit Cost
+
+
+
+
+Handle duplicate notifications

@@ -74,41 +74,90 @@ const documentService = {
     }
   },
 
-  deleteMultipleDocuments: async (ids: number[]): Promise<{ successful: number[], failed: { id: number, error: string }[] }> => {
+  deleteMultipleDocuments: async (ids: number[]): Promise<{ 
+    successful: number[], 
+    failed: { id: number, error: string }[],
+    erpArchivedCount?: number,
+    erpArchivedDocuments?: { id: number, documentKey: string, erpCode: string }[]
+  }> => {
     const results = {
       successful: [] as number[],
-      failed: [] as { id: number, error: string }[]
+      failed: [] as { id: number, error: string }[],
+      erpArchivedCount: 0,
+      erpArchivedDocuments: [] as { id: number, documentKey: string, erpCode: string }[]
     };
 
-    // Use the new bulk delete endpoint
+    // Use the bulk delete endpoint
     try {
+      console.log('[DEBUG Frontend] Sending bulk delete request for document IDs:', ids);
       const response = await api.post('/Documents/bulk-delete', ids);
       
-      // If the response indicates some failures
-      if (response.data.failedIds && response.data.failedIds.length > 0) {
-        // Mark successful ones
-        results.successful = ids.filter(id => !response.data.failedIds.includes(id));
+      console.log('[DEBUG Frontend] Bulk delete response:', response.data);
+      
+      // Extract enhanced response data
+      const {
+        successCount = 0,
+        failedIds = [],
+        erpArchivedCount = 0,
+        erpArchivedDocuments = [],
+        otherFailedCount = 0,
+        message = ''
+      } = response.data;
+
+      // Mark successful ones
+      results.successful = ids.filter(id => !failedIds.includes(id));
+      results.erpArchivedCount = erpArchivedCount;
+      results.erpArchivedDocuments = erpArchivedDocuments;
+      
+      // If there are failures, categorize them
+      if (failedIds && failedIds.length > 0) {
+        // Create detailed error messages for failed documents
+        const erpArchivedIds = erpArchivedDocuments.map(doc => doc.id);
         
-        // Mark failed ones with generic error message
-        results.failed = response.data.failedIds.map((id: number) => ({
-          id,
-          error: 'Failed to delete document'
-        }));
+        results.failed = failedIds.map((id: number) => {
+          if (erpArchivedIds.includes(id)) {
+            const erpDoc = erpArchivedDocuments.find(doc => doc.id === id);
+            return {
+              id,
+              error: `Document archived to ERP (${erpDoc?.erpCode || 'unknown code'}) and cannot be deleted`
+            };
+          } else {
+            return {
+              id,
+              error: 'Failed to delete document for unknown reason'
+            };
+          }
+        });
+        
+        // Create comprehensive error message
+        let errorMessage = message;
+        if (!errorMessage) {
+          if (erpArchivedCount > 0 && otherFailedCount > 0) {
+            errorMessage = `${successCount} documents deleted. ${erpArchivedCount} could not be deleted (ERP archived), ${otherFailedCount} failed for other reasons.`;
+          } else if (erpArchivedCount > 0) {
+            errorMessage = `${successCount} documents deleted. ${erpArchivedCount} could not be deleted because they are archived to ERP.`;
+          } else if (otherFailedCount > 0) {
+            errorMessage = `${successCount} documents deleted. ${otherFailedCount} documents failed for other reasons.`;
+          } else {
+            errorMessage = 'Some documents could not be deleted';
+          }
+        }
         
         // Throw error for partial failure handling in UI
-        const error = new Error(response.data.message || 'Some documents could not be deleted') as any;
+        const error = new Error(errorMessage) as any;
         error.results = results;
+        error.isPartialFailure = true;
+        error.erpArchivedCount = erpArchivedCount;
+        error.erpArchivedDocuments = erpArchivedDocuments;
         throw error;
       }
       
       // All successful
-      results.successful = ids;
       return results;
       
     } catch (error: any) {
-      // If bulk endpoint fails, fall back to individual deletions
-      if (error.results) {
-        // This was a partial failure from bulk endpoint
+      // If this was a partial failure with our enhanced error info, re-throw it
+      if (error.results && error.isPartialFailure) {
         throw error;
       }
       
@@ -121,7 +170,24 @@ const documentService = {
           results.successful.push(id);
           return { success: true, id };
         } catch (error: any) {
-          const errorMessage = error.response?.data || error.message || 'Unknown error';
+          let errorMessage = 'Unknown error';
+          
+          // Extract specific error messages
+          if (error.response?.data) {
+            if (typeof error.response.data === 'string') {
+              errorMessage = error.response.data;
+            } else if (error.response.data.message) {
+              errorMessage = error.response.data.message;
+            }
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          // Detect ERP archival errors
+          if (errorMessage.includes('archived to the ERP system')) {
+            errorMessage = 'Document archived to ERP and cannot be deleted';
+          }
+          
           results.failed.push({ id, error: errorMessage });
           return { success: false, id, error: errorMessage };
         }
@@ -134,20 +200,25 @@ const documentService = {
       if (results.failed.length > 0) {
         const successCount = results.successful.length;
         const failCount = results.failed.length;
+        const erpArchivedFailures = results.failed.filter(f => f.error.includes('archived to ERP'));
         
         let errorMessage = '';
         if (successCount > 0) {
-          errorMessage = `Partially completed: ${successCount} documents deleted successfully, ${failCount} failed.`;
-        } else {
-          errorMessage = `Failed to delete ${failCount} documents.`;
+          errorMessage = `${successCount} documents deleted successfully. `;
         }
         
-        // Add details about failed deletions
-        const failedDetails = results.failed.map(f => `Document ${f.id}: ${f.error}`).join('; ');
-        errorMessage += ` Failures: ${failedDetails}`;
+        if (erpArchivedFailures.length > 0) {
+          errorMessage += `${erpArchivedFailures.length} documents could not be deleted (ERP archived). `;
+        }
         
-        const error = new Error(errorMessage) as any;
+        const otherFailures = failCount - erpArchivedFailures.length;
+        if (otherFailures > 0) {
+          errorMessage += `${otherFailures} documents failed for other reasons.`;
+        }
+        
+        const error = new Error(errorMessage.trim()) as any;
         error.results = results;
+        error.erpArchivedCount = erpArchivedFailures.length;
         throw error;
       }
 

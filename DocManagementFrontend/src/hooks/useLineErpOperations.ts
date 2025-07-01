@@ -1,10 +1,14 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { showErpError, extractErpError, showNetworkError } from '@/utils/erpErrorHandling';
 
 interface ErpOperationResult {
   success: boolean;
   erpLineCode?: string;
   message?: string;
+  errorDetails?: string;
+  errorType?: string;
+  statusCode?: number;
 }
 
 interface ErpStatus {
@@ -43,24 +47,27 @@ export const useLineErpOperations = () => {
           message: result.message
         };
       } else {
-        toast.error('Failed to add line to ERP', {
-          description: result.message || 'Unknown error occurred'
-        });
+        // Enhanced error handling using shared utility
+        showErpError(result, 'line creation', { showActions: true });
         
         return {
           success: false,
-          message: result.message
+          message: result.message || 'Failed to add line to ERP',
+          errorDetails: result.errorDetails,
+          errorType: result.errorType,
+          statusCode: result.statusCode
         };
       }
     } catch (error) {
       console.error('Error adding line to ERP:', error);
-      toast.error('Failed to add line to ERP', {
-        description: 'Network error occurred'
-      });
+      
+      const erpError = extractErpError(error, 'line creation');
+      showErpError(erpError, 'line creation');
       
       return {
         success: false,
-        message: 'Network error occurred'
+        message: erpError.message || 'Failed to add line to ERP',
+        errorType: erpError.errorType
       };
     } finally {
       setIsLoading(false);

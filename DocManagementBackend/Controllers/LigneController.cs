@@ -661,47 +661,50 @@ namespace DocManagementBackend.Controllers
                 
                 // Call the ERP line creation service
                 ConsoleColorHelper.WriteInfo($"[ERP] Starting ERP line creation for ligne {ligne.Id}");
-                var erpLineCode = await CallBusinessCenterLineApi(linePayload);
+                var erpLineResult = await CallBusinessCenterLineApi(linePayload);
                 
-                if (!string.IsNullOrEmpty(erpLineCode))
+                if (erpLineResult.IsSuccess)
                 {
                     // Check if another line in the SAME DOCUMENT already has this ERP line code
                     var existingLineWithCode = await _context.Lignes
-                        .FirstOrDefaultAsync(l => l.ERPLineCode == erpLineCode && 
+                        .FirstOrDefaultAsync(l => l.ERPLineCode == erpLineResult.Value && 
                                                  l.DocumentId == ligne.DocumentId && 
                                                  l.Id != ligne.Id);
                     
                     if (existingLineWithCode != null)
                     {
-                        ConsoleColorHelper.WriteWarning($"[ERP] ERP line code {erpLineCode} already exists for ligne {existingLineWithCode.Id} in the same document");
+                        ConsoleColorHelper.WriteWarning($"[ERP] ERP line code {erpLineResult.Value} already exists for ligne {existingLineWithCode.Id} in the same document");
                         return BadRequest(new { 
-                            message = $"ERP line code {erpLineCode} already exists for another line (ID: {existingLineWithCode.Id}) in the same document. This indicates a synchronization issue with Business Central.",
+                            message = $"ERP line code {erpLineResult.Value} already exists for another line (ID: {existingLineWithCode.Id}) in the same document. This indicates a synchronization issue with Business Central.",
                             success = false,
                             duplicateLineId = existingLineWithCode.Id,
-                            erpLineCode = erpLineCode
+                            erpLineCode = erpLineResult.Value
                         });
                     }
                     
                     // Update ligne with ERP line code
-                    ligne.ERPLineCode = erpLineCode;
+                    ligne.ERPLineCode = erpLineResult.Value;
                     ligne.UpdatedAt = DateTime.UtcNow;
                     
                     await _context.SaveChangesAsync();
                     
-                    ConsoleColorHelper.WriteSuccess($"[ERP] Line {ligne.Id} successfully added to ERP with code: {erpLineCode}");
+                    ConsoleColorHelper.WriteSuccess($"[ERP] Line {ligne.Id} successfully added to ERP with code: {erpLineResult.Value}");
                     
                     return Ok(new { 
                         message = "Line successfully added to ERP",
                         ligneId = ligne.Id,
-                        erpLineCode = erpLineCode,
+                        erpLineCode = erpLineResult.Value,
                         success = true
                     });
                 }
                 else
                 {
-                    ConsoleColorHelper.WriteError($"[ERP] Failed to add line {ligne.Id} to ERP - no line code returned from API");
+                    ConsoleColorHelper.WriteError($"[ERP] Failed to add line {ligne.Id} to ERP - Error: {erpLineResult.ErrorMessage}");
                     return StatusCode(500, new { 
-                        message = "Failed to add line to ERP. Please check server logs for details.",
+                        message = erpLineResult.ErrorMessage ?? "Failed to add line to ERP",
+                        errorDetails = erpLineResult.ErrorDetails,
+                        errorType = erpLineResult.ErrorType,
+                        statusCode = erpLineResult.StatusCode,
                         success = false
                     });
                 }
@@ -924,7 +927,7 @@ namespace DocManagementBackend.Controllers
             return payload;
         }
 
-        private async Task<string?> CallBusinessCenterLineApi(object payload)
+        private async Task<ErpOperationResult> CallBusinessCenterLineApi(object payload)
         {
             const string apiEndpoint = "http://localhost:25048/BC250/ODataV4/APICreateDocVerse_CreateDocLine?company=CRONUS%20France%20S.A.";
             
@@ -975,32 +978,64 @@ namespace DocManagementBackend.Controllers
                             if (responseObj.TryGetProperty("value", out var valueElement))
                             {
                                 // Handle both string and integer values from BC API
-                                return valueElement.ValueKind switch
+                                var lineCode = valueElement.ValueKind switch
                                 {
                                     JsonValueKind.String => valueElement.GetString(),
                                     JsonValueKind.Number => valueElement.GetInt32().ToString(),
                                     _ => valueElement.ToString()
                                 };
+                                return ErpOperationResult.Success(lineCode ?? responseContent.Trim('"'));
                             }
-                            return responseContent.Trim('"');
+                            return ErpOperationResult.Success(responseContent.Trim('"'));
                         }
-                        catch (Exception ex)
+                        catch (JsonException ex)
                         {
                             ConsoleColorHelper.WriteWarning($"[ERP] Failed to parse response JSON, using raw content: {ex.Message}");
-                            return responseContent.Trim().Trim('"');
+                            return ErpOperationResult.Success(responseContent.Trim().Trim('"'));
                         }
                     }
-                    return responseContent;
+                    return ErpOperationResult.Success(responseContent);
                 }
                 else
                 {
+                    // Extract meaningful error message from Business Central response
+                    string userFriendlyError = ExtractBusinessCentralLineError(responseContent, (int)response.StatusCode);
+                    
                     // Error logging
                     ConsoleColorHelper.WriteError($"[ERP] API call failed - Status: {response.StatusCode}");
                     ConsoleColorHelper.WriteError($"[ERP] Response Content: {responseContent}");
                     ConsoleColorHelper.WriteError($"[ERP] Request Headers: {string.Join(", ", httpClient.DefaultRequestHeaders.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"))}");
                     ConsoleColorHelper.WriteError($"[ERP] Response Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"))}");
+                    
+                    return ErpOperationResult.Failure(
+                        userFriendlyError,
+                        responseContent,
+                        (int)response.StatusCode,
+                        GetErrorTypeFromStatusCode((int)response.StatusCode)
+                    );
                 }
-                return null;
+            }
+            catch (HttpRequestException ex)
+            {
+                ConsoleColorHelper.WriteException("[ERP] Network error calling BC Line API", ex);
+                ConsoleColorHelper.WriteError($"[ERP] Endpoint: {apiEndpoint}");
+                ConsoleColorHelper.WriteError($"[ERP] Credentials - Username: {username}, Domain: {domain}");
+                return ErpOperationResult.Failure(
+                    "Unable to connect to Business Central ERP system. Please check network connectivity.",
+                    ex.Message,
+                    null,
+                    "NetworkError"
+                );
+            }
+            catch (TaskCanceledException ex)
+            {
+                ConsoleColorHelper.WriteException("[ERP] Timeout calling BC Line API", ex);
+                return ErpOperationResult.Failure(
+                    "ERP line creation timed out. The system may be busy, please try again later.",
+                    ex.Message,
+                    null,
+                    "TimeoutError"
+                );
             }
             catch (Exception ex)
             {
@@ -1009,7 +1044,12 @@ namespace DocManagementBackend.Controllers
                 ConsoleColorHelper.WriteError($"[ERP] Payload that caused error: {JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true })}");
                 ConsoleColorHelper.WriteError($"[ERP] Endpoint: {apiEndpoint}");
                 ConsoleColorHelper.WriteError($"[ERP] Credentials - Username: {username}, Domain: {domain}");
-                return null;
+                return ErpOperationResult.Failure(
+                    "An unexpected error occurred while creating the line in the ERP system.",
+                    ex.Message,
+                    null,
+                    "UnexpectedError"
+                );
             }
         }
 
@@ -1087,6 +1127,134 @@ namespace DocManagementBackend.Controllers
                 ConsoleColorHelper.WriteException("[FIX] Error fixing ERP line codes", ex);
                 return StatusCode(500, $"Error fixing ERP line codes: {ex.Message}");
             }
+        }
+
+        // Helper method for line-specific error extraction
+        private string ExtractBusinessCentralLineError(string responseContent, int statusCode)
+        {
+            if (string.IsNullOrWhiteSpace(responseContent))
+            {
+                return GetGenericErrorMessage(statusCode, "line creation");
+            }
+
+            try
+            {
+                var responseObj = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                
+                if (responseObj.TryGetProperty("error", out var errorObj))
+                {
+                    if (errorObj.TryGetProperty("message", out var messageObj))
+                    {
+                        var message = messageObj.GetString();
+                        return TranslateBusinessCentralMessage(message ?? responseContent, "line creation");
+                    }
+                }
+                
+                if (responseObj.TryGetProperty("message", out var directMessage))
+                {
+                    var message = directMessage.GetString();
+                    return TranslateBusinessCentralMessage(message ?? responseContent, "line creation");
+                }
+            }
+            catch (JsonException)
+            {
+                return TranslateBusinessCentralMessage(responseContent, "line creation");
+            }
+
+            return GetGenericErrorMessage(statusCode, "line creation");
+        }
+
+        // Helper method to translate Business Central error messages to user-friendly messages
+        private string TranslateBusinessCentralMessage(string bcMessage, string operation)
+        {
+            var lowerMessage = bcMessage.ToLower();
+
+            // Common Business Central error patterns
+            if (lowerMessage.Contains("item") && lowerMessage.Contains("not found"))
+                return "The specified item does not exist in Business Central. Please verify the item code.";
+            
+            if (lowerMessage.Contains("account") && lowerMessage.Contains("not found"))
+                return "The specified general ledger account does not exist in Business Central. Please verify the account code.";
+            
+            if (lowerMessage.Contains("customer") && lowerMessage.Contains("not found"))
+                return "The specified customer does not exist in Business Central. Please verify the customer code.";
+            
+            if (lowerMessage.Contains("vendor") && lowerMessage.Contains("not found"))
+                return "The specified vendor does not exist in Business Central. Please verify the vendor code.";
+            
+            if (lowerMessage.Contains("location") && lowerMessage.Contains("not found"))
+                return "The specified location does not exist in Business Central. Please verify the location code.";
+            
+            if (lowerMessage.Contains("unit of measure") || lowerMessage.Contains("uom"))
+                return "Invalid unit of measure. Please verify the unit code exists for this item in Business Central.";
+            
+            if (lowerMessage.Contains("responsibility center") || lowerMessage.Contains("responsibility centre"))
+                return "The specified responsibility center does not exist in Business Central. Please verify the center code.";
+            
+            if (lowerMessage.Contains("dimension") || lowerMessage.Contains("shortcut dimension"))
+                return "Invalid dimension value. Please verify the dimension settings in Business Central.";
+            
+            if (lowerMessage.Contains("posting date"))
+                return "Invalid posting date. Please check the date falls within an open accounting period.";
+            
+            if (lowerMessage.Contains("document date"))
+                return "Invalid document date. Please verify the date format and value.";
+            
+            if (lowerMessage.Contains("quantity") && lowerMessage.Contains("negative"))
+                return "Negative quantities are not allowed for this operation.";
+            
+            if (lowerMessage.Contains("price") && (lowerMessage.Contains("negative") || lowerMessage.Contains("invalid")))
+                return "Invalid price value. Please enter a valid positive price.";
+            
+            if (lowerMessage.Contains("currency"))
+                return "Currency code issue. Please verify the currency is valid in Business Central.";
+            
+            if (lowerMessage.Contains("blocked"))
+                return "The record is blocked in Business Central and cannot be used for new transactions.";
+            
+            if (lowerMessage.Contains("permission") || lowerMessage.Contains("access"))
+                return "Insufficient permissions to perform this operation in Business Central. Contact your administrator.";
+            
+            if (lowerMessage.Contains("connection") || lowerMessage.Contains("timeout"))
+                return "Connection issue with Business Central. Please try again later.";
+
+            // If no specific pattern matches, return the original message with context
+            return $"Business Central {operation} error: {bcMessage}";
+        }
+
+        // Helper method to get generic error messages based on status code
+        private string GetGenericErrorMessage(int statusCode, string operation)
+        {
+            return statusCode switch
+            {
+                400 => $"Invalid data provided for {operation}. Please check all required fields.",
+                401 => "Authentication failed with Business Central. Please check API credentials.",
+                403 => "Access denied to Business Central. Contact your administrator for permissions.",
+                404 => "Business Central API endpoint not found. Please verify system configuration.",
+                500 => "Business Central server error occurred. Please try again later or contact support.",
+                502 => "Business Central service is temporarily unavailable. Please try again later.",
+                503 => "Business Central service is temporarily unavailable. Please try again later.",
+                _ => $"An error occurred during {operation} (HTTP {statusCode}). Please try again or contact support."
+            };
+        }
+
+        // Helper method to categorize error types
+        private string GetErrorTypeFromStatusCode(int statusCode)
+        {
+            return statusCode switch
+            {
+                400 => "ValidationError",
+                401 => "AuthenticationError",
+                403 => "AuthorizationError",
+                404 => "NotFoundError",
+                408 => "TimeoutError",
+                429 => "RateLimitError",
+                500 => "ServerError",
+                502 => "ServiceUnavailableError",
+                503 => "ServiceUnavailableError",
+                504 => "TimeoutError",
+                _ => "UnknownError"
+            };
         }
     }
 }
