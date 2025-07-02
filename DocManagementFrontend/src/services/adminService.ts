@@ -170,13 +170,65 @@ const adminService = {
 
   checkEmailExists: async (email: string): Promise<boolean> => {
     try {
-      const response = await api.get(`/admin/users/check-email?email=${encodeURIComponent(email)}`);
-      return response.data.exists;
-    } catch (error) {
-      // If the API doesn't support this endpoint yet, let's assume the email doesn't exist
-      // In a real application, you'd want to handle this differently
+      // Validate email format before making the API call
+      if (!email || !email.trim()) {
+        throw new Error('Email is required');
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      const response = await api.post(`/Auth/valide-email`, { email: email.trim() });
+      
+      // Handle the response properly - API returns "True" or "False" as strings
+      if (response.data === "False") {
+        // Email exists (taken) - return true to indicate email exists
+        return true;
+      } else if (response.data === "True") {
+        // Email is available - return false to indicate email doesn't exist
+        return false;
+      }
+      
+      // If response format is unexpected, throw an error
+      throw new Error('Unexpected response format from server');
+      
+    } catch (error: any) {
       console.error("Error checking email existence:", error);
-      return false;
+      
+      // Handle different types of errors
+      if (error.message && (error.message.includes('Email is required') || error.message.includes('valid email'))) {
+        // Re-throw validation errors
+        throw error;
+      }
+      
+      if (error.response) {
+        // Server responded with an error status
+        const status = error.response.status;
+        const message = error.response.data?.message || error.response.data;
+        
+        switch (status) {
+          case 400:
+            throw new Error(message || 'Invalid email format');
+          case 401:
+            throw new Error('Authentication required to check email');
+          case 403:
+            throw new Error('You do not have permission to check email availability');
+          case 404:
+            throw new Error('Email validation service not available');
+          case 500:
+            throw new Error('Server error occurred while checking email. Please try again.');
+          default:
+            throw new Error(`Server error (${status}). Please try again.`);
+        }
+      } else if (error.request) {
+        // Network error - no response received
+        throw new Error('Unable to connect to server. Please check your internet connection and try again.');
+      } else {
+        // Other error (validation, unexpected format, etc.)
+        throw new Error(error.message || 'An unexpected error occurred while checking email');
+      }
     }
   }
 };

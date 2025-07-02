@@ -10,8 +10,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AlertTriangle, Trash } from "lucide-react";
-import { motion } from "framer-motion";
-
 interface DeleteConfirmDialogProps {
   title: string;
   description: string;
@@ -24,8 +22,6 @@ interface DeleteConfirmDialogProps {
   children?: React.ReactNode;
 }
 
-const MotionAlertDialogContent = motion.create(AlertDialogContent);
-
 export function DeleteConfirmDialog({
   title,
   description,
@@ -37,15 +33,12 @@ export function DeleteConfirmDialog({
   destructive = true,
   children,
 }: DeleteConfirmDialogProps) {
+  console.log("DeleteConfirmDialog render:", { open, title });
+  
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <MotionAlertDialogContent
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ type: "spring", duration: 0.3 }}
-        className="bg-gradient-to-b from-[#1a2c6b] to-[#0a1033] border-blue-500/30 text-white shadow-[0_0_25px_rgba(59,130,246,0.2)] rounded-xl max-w-md w-full"
-      >
+      <AlertDialogContent className="bg-gradient-to-b from-[#1a2c6b] to-[#0a1033] border-blue-500/30 text-white shadow-[0_0_25px_rgba(59,130,246,0.2)] rounded-xl max-w-md w-full">
+      
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-1">
             {destructive && (
@@ -87,7 +80,7 @@ export function DeleteConfirmDialog({
             {confirmText}
           </AlertDialogAction>
         </AlertDialogFooter>
-      </MotionAlertDialogContent>
+      </AlertDialogContent>
     </AlertDialog>
   );
 }

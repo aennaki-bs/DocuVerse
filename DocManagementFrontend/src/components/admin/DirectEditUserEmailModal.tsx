@@ -65,16 +65,41 @@ export function DirectEditUserEmailModal({
 
     try {
       setIsCheckingEmail(true);
-      // Replace with your actual API call to check email
-      const exists = await adminService
-        .checkEmailExists(email)
-        .catch(() => false);
+      const exists = await adminService.checkEmailExists(email);
 
       if (exists) {
         setEmailError("This email is already registered in the system");
+      } else {
+        // Clear any previous error if email is available
+        if (emailError === "This email is already registered in the system") {
+          setEmailError("");
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error checking email:", error);
+      
+      // Handle specific errors from checkEmailExists
+      if (error.message) {
+        if (error.message.includes('Email is required') || 
+            error.message.includes('valid email address')) {
+          // These are validation errors - let the validateEmailFormat handle them
+          return;
+        } else if (error.message.includes('connect to server') || 
+                   error.message.includes('internet connection')) {
+          setEmailError("Unable to verify email availability. Please check your connection and try again.");
+        } else if (error.message.includes('Server error') || 
+                   error.message.includes('service not available')) {
+          setEmailError("Email verification service temporarily unavailable. You may continue, but please ensure the email is correct.");
+        } else if (error.message.includes('Authentication required') || 
+                   error.message.includes('permission')) {
+          setEmailError("Unable to verify email availability due to permissions. Please contact your administrator.");
+        } else {
+          // Generic error message for other cases
+          setEmailError("Unable to verify email availability. Please ensure the email is correct.");
+        }
+      } else {
+        setEmailError("Unable to verify email availability. Please ensure the email is correct.");
+      }
     } finally {
       setIsCheckingEmail(false);
     }

@@ -18,11 +18,6 @@ export interface RegisterCredentials {
   Country: string;
   WebSite: string;
   Identity: string;
-  ResponsibilityCentreId?: number | null;
-  NewResponsibilityCentre?: {
-    code: string;
-    descr: string;
-  } | null;
   // Keep adminSecretKey for header processing
   adminSecretKey?: string;
 }

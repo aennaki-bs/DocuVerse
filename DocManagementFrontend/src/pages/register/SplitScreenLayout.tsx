@@ -44,7 +44,7 @@ const StepGuidance = () => {
         },
         {
           icon: <Building2 size={18} />,
-          title: "Business Account",
+          title: "Company Account",
           content: "For companies with multiple team members",
         },
       ],
@@ -98,21 +98,26 @@ const StepGuidance = () => {
       tips: [
         {
           icon: <MapPin size={18} />,
-          title: "Address",
-          content: "Enter your complete physical address",
+          title: "City",
+          content: "Enter your city (required)",
         },
         {
-          icon: <Mail size={18} />,
-          title: "Contact Email",
-          content: "Provide an email for official communications",
+          icon: <MapPin size={18} />,
+          title: "Country",
+          content: "Enter your country (required)",
+        },
+        {
+          icon: <MapPin size={18} />,
+          title: "Address",
+          content: "Enter your complete physical address (optional)",
         },
         {
           icon: <Users size={18} />,
           title: "Phone Number",
-          content: "Add a phone number for account verification",
+          content: "Add a phone number for account verification (optional)",
         },
       ],
-      note: "Your contact information is used for important account notifications and verifications.",
+      note: "Only city and country are required. Other contact information is optional.",
     },
     // Step 3: Username & Email
     {
@@ -186,53 +191,39 @@ const StepGuidance = () => {
       ],
       note: "Admin privileges allow you to manage other users and system settings.",
     },
-    // Step 6: Responsibility Centre
-    {
-      title: "Responsibility Centre",
-      description: "Select an existing responsibility centre (optional)",
-      icon: <Building2 className="h-6 w-6" />,
-      tips: [
-        {
-          icon: <Building2 size={18} />,
-          title: "Optional Selection",
-          content: "Choose from existing responsibility centres",
-        },
-        {
-          icon: <AlertCircle size={18} />,
-          title: "Contact Administration",
-          content: "If your centre doesn't exist, contact the administration",
-        },
-        {
-          icon: <Users size={18} />,
-          title: "Department Assignment",
-          content: "This helps organize documents by department or team",
-        },
-      ],
-      note: "If your responsibility centre doesn't exist, please contact the administration.",
-    },
-    // Step 7: Review
+    // Step 6: Review
     {
       title: "Review Your Information",
       description: "Verify all details before completing registration",
       icon: <CheckSquare className="h-6 w-6" />,
       tips: [
         {
-          icon: <CheckCircle size={18} />,
-          title: "Check All Details",
-          content: "Review all information for accuracy",
+          icon: <User size={18} />,
+          title: "Account Type & Personal Info",
+          content: "Review your account type and personal/company details",
+        },
+        {
+          icon: <MapPin size={18} />,
+          title: "Contact Information",
+          content: "Verify your address, city, country, and phone number",
+        },
+        {
+          icon: <Mail size={18} />,
+          title: "Account Credentials",
+          content: "Check your username and email address",
+        },
+        {
+          icon: <Shield size={18} />,
+          title: "Security & Access",
+          content: "Confirm password and access level settings",
         },
         {
           icon: <PenLine size={18} />,
-          title: "Make Corrections",
-          content: "Use the Back button to edit previous sections",
-        },
-        {
-          icon: <ArrowRight size={18} />,
-          title: "Complete Registration",
-          content: "Submit your information to create your account",
+          title: "Edit Sections",
+          content: "Click 'Edit' on any section to make changes",
         },
       ],
-      note: "Once submitted, you'll receive a confirmation email with next steps.",
+      note: "Review each section carefully. You can edit any section by clicking the edit button before submitting.",
     },
   ];
 
@@ -317,7 +308,7 @@ const StepGuidance = () => {
           <motion.div
             className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
             initial={{ width: "5%" }}
-            animate={{ width: `${Math.round(((currentStep + 1) / 7) * 100)}%` }}
+            animate={{ width: `${Math.round(((currentStep + 1) / 6) * 100)}%` }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
           />
         </motion.div>

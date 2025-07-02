@@ -411,7 +411,10 @@ export function UserTable() {
             setDirectEditEmailModalOpen(true);
           }}
           onViewLogs={setViewingUserLogs}
-          onDelete={setDeletingUser}
+          onDelete={(userId) => {
+            console.log("Setting deleting user:", userId);
+            setDeletingUser(userId);
+          }}
           sortBy={sortBy}
           sortDirection={sortDirection}
           onSort={handleSort}
@@ -464,8 +467,12 @@ export function UserTable() {
           title="Delete User"
           description="Are you sure you want to delete this user? This action cannot be undone."
           open={deletingUser !== null}
-          onOpenChange={(open) => !open && setDeletingUser(null)}
+          onOpenChange={(open) => {
+            console.log("Delete dialog open change:", open, "deletingUser:", deletingUser);
+            if (!open) setDeletingUser(null);
+          }}
           onConfirm={async () => {
+            console.log("Delete confirmed for user:", deletingUser);
             try {
               if (deletingUser) {
                 await adminService.deleteUser(deletingUser);

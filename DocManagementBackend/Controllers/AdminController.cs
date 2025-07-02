@@ -272,31 +272,65 @@ namespace DocManagementBackend.Controllers
         [HttpDelete("users/{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userIdClaim == null)
-                return Unauthorized("User ID claim is missing.");
-            int userId = int.Parse(userIdClaim);
-            var ThisUser = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
-            if (ThisUser == null)
-                return BadRequest("User not found.");
-            if (!ThisUser.IsActive)
-                return Unauthorized("User account is deactivated. Please contact un admin!");
-            if (ThisUser.Role!.RoleName != "Admin")
-                return Unauthorized("User Not Allowed To do this action.");
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
+            var authResult = await _authService.AuthorizeUserAsync(User, new[] { "Admin" });
+            if (!authResult.IsAuthorized)
+                return authResult.ErrorResponse!;
+
+            var userId = authResult.UserId;
+            var currentUser = authResult.User!;
+
+            // Prevent admin from deleting themselves
+            if (id == userId)
+                return BadRequest("You cannot delete your own account.");
+
+            var userToDelete = await _context.Users.FindAsync(id);
+            if (userToDelete == null)
                 return NotFound("User not found.");
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-            var logEntry = new LogHistory
+
+            // Check if user has any associated data that would prevent deletion
+            var hasDocumentsAsCreator = await _context.Documents.AnyAsync(d => d.CreatedByUserId == id);
+            // var hasDocumentsAsUpdater = await _context.Documents.AnyAsync(d => d.UpdatedByUserId == id);
+            var hasApprovals = await _context.ApprovalWritings.AnyAsync(aw => aw.ProcessedByUserId == id);
+            // var hasCircuitHistory = await _context.DocumentCircuitHistory.AnyAsync(dch => dch.ProcessedByUserId == id);
+            // var hasStepHistory = await _context.DocumentStepHistory.AnyAsync(dsh => dsh.UserId == id);
+            // var hasDocumentStatusHistory = await _context.DocumentStatus.AnyAsync(ds => ds.CompletedByUserId == id);
+
+            if (hasDocumentsAsCreator || hasApprovals)
+            {
+                // Instead of hard deletion, deactivate the user
+                userToDelete.IsActive = false;
+                userToDelete.Email = $"deleted_{userToDelete.Id}_{userToDelete.Email}";
+                userToDelete.Username = $"deleted_{userToDelete.Id}_{userToDelete.Username}";
+                
+                await _context.SaveChangesAsync();
+
+                var logEntry = new LogHistory
+                {
+                    UserId = userId,
+                    User = currentUser,
+                    Timestamp = DateTime.UtcNow,
+                    ActionType = 9,
+                    Description = $"{currentUser.Username} has deactivated {userToDelete.Username}'s account (user had associated data)"
+                };
+                _context.LogHistories.Add(logEntry);
+                await _context.SaveChangesAsync();
+
+                return Ok("User account has been deactivated due to associated data.");
+            }
+
+            // Safe to delete completely
+            _context.Users.Remove(userToDelete);
+            
+            var deleteLogEntry = new LogHistory
             {
                 UserId = userId,
-                User = ThisUser,
+                User = currentUser,
                 Timestamp = DateTime.UtcNow,
                 ActionType = 9,
-                Description = $"{ThisUser.Username} has deleted {user.Username}'s profile"
+                Description = $"{currentUser.Username} has deleted {userToDelete.Username}'s profile"
             };
-            _context.LogHistories.Add(logEntry);
+            _context.LogHistories.Add(deleteLogEntry);
+            
             await _context.SaveChangesAsync();
             return Ok("User deleted successfully.");
         }
@@ -304,27 +338,70 @@ namespace DocManagementBackend.Controllers
         [HttpDelete("delete-users")]
         public async Task<IActionResult> DeleteUsers([FromBody] List<int> userIds)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userIdClaim == null)
-                return Unauthorized("User ID claim is missing.");
-            int userId = int.Parse(userIdClaim);
-            var ThisUser = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
-            if (ThisUser == null)
-                return BadRequest("User not found.");
-            if (!ThisUser.IsActive)
-                return Unauthorized("User account is deactivated. Please contact un admin!");
-            if (ThisUser.Role!.RoleName != "Admin")
-                return Unauthorized("User Not Allowed To do this action.");
+            var authResult = await _authService.AuthorizeUserAsync(User, new[] { "Admin" });
+            if (!authResult.IsAuthorized)
+                return authResult.ErrorResponse!;
+
+            var userId = authResult.UserId;
+            var currentUser = authResult.User!;
+
             if (userIds == null || !userIds.Any())
                 return BadRequest("No user IDs provided.");
+
+            // Remove current user from the list to prevent self-deletion
+            userIds.RemoveAll(id => id == userId);
+
+            if (!userIds.Any())
+                return BadRequest("Cannot delete your own account or no valid user IDs provided.");
+
             var usersToDelete = await _context.Users.Where(u => userIds.Contains(u.Id)).ToListAsync();
             if (!usersToDelete.Any())
                 return NotFound("No users found with the provided IDs.");
-            int currentUserId = int.Parse(userIdClaim);
-            usersToDelete.RemoveAll(u => u.Id == currentUserId);
-            _context.Users.RemoveRange(usersToDelete);
+
+            int deletedCount = 0;
+            int deactivatedCount = 0;
+
+            foreach (var user in usersToDelete)
+            {
+                // Check if user has any associated data that would prevent deletion
+                var hasDocumentsAsCreator = await _context.Documents.AnyAsync(d => d.CreatedByUserId == user.Id);
+                // var hasDocumentsAsUpdater = await _context.Documents.AnyAsync(d => d.UpdatedByUserId == user.Id);
+                var hasApprovals = await _context.ApprovalWritings.AnyAsync(aw => aw.ProcessedByUserId == user.Id);
+                // var hasCircuitHistory = await _context.DocumentCircuitHistory.AnyAsync(dch => dch.ProcessedByUserId == user.Id);
+                // var hasStepHistory = await _context.DocumentStepHistory.AnyAsync(dsh => dsh.UserId == user.Id);
+                // var hasDocumentStatusHistory = await _context.DocumentStatus.AnyAsync(ds => ds.CompletedByUserId == user.Id);
+
+                if (hasDocumentsAsCreator || hasApprovals)
+                {
+                    // Deactivate instead of delete
+                    user.IsActive = false;
+                    user.Email = $"deleted_{user.Id}_{user.Email}";
+                    user.Username = $"deleted_{user.Id}_{user.Username}";
+                    deactivatedCount++;
+                }
+                else
+                {
+                    // Safe to delete completely
+                    _context.Users.Remove(user);
+                    deletedCount++;
+                }
+            }
+
             await _context.SaveChangesAsync();
-            return Ok($"{usersToDelete.Count} Users Deleted Successfully.");
+
+            var logEntry = new LogHistory
+            {
+                UserId = userId,
+                User = currentUser,
+                Timestamp = DateTime.UtcNow,
+                ActionType = 9,
+                Description = $"{currentUser.Username} performed bulk user cleanup: {deletedCount} deleted, {deactivatedCount} deactivated"
+            };
+            _context.LogHistories.Add(logEntry);
+            await _context.SaveChangesAsync();
+
+            var message = $"{deletedCount} users deleted, {deactivatedCount} users deactivated (had associated data).";
+            return Ok(message);
         }
 
         [HttpGet("logs/{id}")]

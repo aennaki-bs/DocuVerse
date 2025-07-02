@@ -77,7 +77,10 @@ export function UserActionsDropdown({
 
         <DropdownMenuItem
           className="text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-900 dark:hover:text-red-200 rounded-md focus:bg-red-100 dark:focus:bg-red-900/30 focus:text-red-900 dark:focus:text-red-200 px-3 py-2 cursor-pointer"
-          onClick={() => onDelete(user.id)}
+          onClick={() => {
+            console.log("Delete clicked for user:", user.id, user.username);
+            onDelete(user.id);
+          }}
         >
           <Trash className="mr-2.5 h-4 w-4" />
           <span>{t("userManagement.deleteUser")}</span>

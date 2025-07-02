@@ -11,9 +11,6 @@ export const prepareUserData = (formData: FormData) => {
     FirstName: formData.firstName || '',
     LastName: formData.lastName || '',
     UserType: formData.userType || 'personal',
-    // Include responsibility centre data
-    ResponsibilityCentreId: formData.responsibilityCentreId || null,
-    NewResponsibilityCentre: formData.newResponsibilityCentre || null,
     // Include admin secret key for header processing
     adminSecretKey: formData.requestAdminAccess ? (formData.adminSecretKey || '') : undefined,
   };

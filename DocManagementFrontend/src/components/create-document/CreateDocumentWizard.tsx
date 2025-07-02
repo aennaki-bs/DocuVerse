@@ -100,7 +100,17 @@ export default function CreateDocumentWizard({
 
   // Check if user has a responsibility centre
   const userHasResponsibilityCentre =
-    user?.responsibilityCentre?.id !== undefined;
+    user?.responsibilityCentre?.id !== undefined || user?.responsibilityCenter?.id !== undefined;
+
+  // Get user's responsibility centre ID
+  const getUserResponsibilityCentreId = () => {
+    return user?.responsibilityCentre?.id || user?.responsibilityCenter?.id || null;
+  };
+
+  // Get user's responsibility centre name  
+  const getUserResponsibilityCentreName = () => {
+    return user?.responsibilityCentre?.descr || user?.responsibilityCenter?.descr || user?.responsibilityCentre?.code || user?.responsibilityCenter?.code || null;
+  };
 
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
@@ -119,9 +129,7 @@ export default function CreateDocumentWizard({
     circuitName: "",
     isExternal: false,
     externalReference: "",
-    responsibilityCentreId: userHasResponsibilityCentre
-      ? user?.responsibilityCentre?.id || null
-      : null,
+    responsibilityCentreId: getUserResponsibilityCentreId(),
     // Customer/Vendor fields
     selectedCustomerVendor: null,
     customerVendorName: "",
@@ -186,33 +194,48 @@ export default function CreateDocumentWizard({
       setFormData(initialFormData);
       setIsLoading(true);
 
-      // Check if user has a responsibility center
-      api
-        .get("/Account/user-info")
-        .then((response) => {
-          console.log("User info from API:", response.data);
-          // API uses "responsibilityCenter" (with "Center")
-          if (response.data?.responsibilityCenter?.id) {
-            console.log(
-              "Found responsibility center in user data:",
-              response.data.responsibilityCenter
-            );
-            // User has a responsibility center, use it
-            setFormData((prev) => ({
-              ...prev,
-              responsibilityCentreId: response.data.responsibilityCenter.id,
-            }));
-            setIsLoading(false);
-          } else {
-            // User doesn't have an assigned center, fetch available centers
-            fetchResponsibilityCentres();
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to fetch user info:", error);
-          // Try to fetch responsibility centres anyway
-          fetchResponsibilityCentres();
+      // Check if user has a responsibility center from auth context first
+      if (userHasResponsibilityCentre) {
+        console.log("User has responsibility centre from auth context:", {
+          id: getUserResponsibilityCentreId(),
+          name: getUserResponsibilityCentreName()
         });
+        // User has a responsibility center, use it immediately
+        setFormData((prev) => ({
+          ...prev,
+          responsibilityCentreId: getUserResponsibilityCentreId(),
+        }));
+        setIsLoading(false);
+      } else {
+        // User doesn't have an assigned center in context, check API and fetch available centers
+        api
+          .get("/Account/user-info")
+          .then((response) => {
+            console.log("User info from API:", response.data);
+            // API uses both "responsibilityCenter" and "responsibilityCentre"
+            const responsibilityCentreId = response.data?.responsibilityCenter?.id || response.data?.responsibilityCentre?.id;
+            if (responsibilityCentreId) {
+              console.log(
+                "Found responsibility center in API user data:",
+                response.data.responsibilityCenter || response.data.responsibilityCentre
+              );
+              // User has a responsibility center, use it
+              setFormData((prev) => ({
+                ...prev,
+                responsibilityCentreId: responsibilityCentreId,
+              }));
+              setIsLoading(false);
+            } else {
+              // User doesn't have an assigned center, fetch available centers
+              fetchResponsibilityCentres();
+            }
+          })
+          .catch((error) => {
+            console.error("Failed to fetch user info:", error);
+            // Try to fetch responsibility centres anyway
+            fetchResponsibilityCentres();
+          });
+      }
 
       // Fetch other required data
       fetchDocumentTypes();
@@ -1012,12 +1035,23 @@ export default function CreateDocumentWizard({
 
   // Get the name of the selected responsibility centre
   const getSelectedResponsibilityCentreName = (): string | undefined => {
-    if (user?.responsibilityCentre) {
-      return `${user.responsibilityCentre.code} - ${user.responsibilityCentre.descr}`;
+    // First check if user has an assigned responsibility centre
+    if (userHasResponsibilityCentre) {
+      const userCentre = user?.responsibilityCentre || user?.responsibilityCenter;
+      if (userCentre) {
+        return userCentre.code && userCentre.descr 
+          ? `${userCentre.code} - ${userCentre.descr}`
+          : userCentre.descr || userCentre.code;
+      }
     }
-    return responsibilityCentres.find(
+    
+    // Otherwise, look up in the available responsibility centres
+    const selectedCentre = responsibilityCentres.find(
       (centre) => centre.id === formData.responsibilityCentreId
-    )?.descr;
+    );
+    return selectedCentre?.code && selectedCentre?.descr
+      ? `${selectedCentre.code} - ${selectedCentre.descr}`
+      : selectedCentre?.descr;
   };
 
   const renderStepContent = () => {
