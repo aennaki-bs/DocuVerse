@@ -81,6 +81,7 @@ const formSchema = z.object({
   lastName: z.string().min(2, {
     message: "Last name must be at least 2 characters.",
   }),
+  cin: z.string().optional(),
   companyName: z.string().optional(),
 
   // Address information
@@ -199,6 +200,7 @@ export function CreateUserMultiStep({
       userType: "simple",
       firstName: "",
       lastName: "",
+      cin: "",
       companyName: "",
       address: "",
       city: "",
@@ -266,6 +268,35 @@ export function CreateUserMultiStep({
     return () => clearTimeout(timeoutId);
   }, [email]);
 
+  // Reset form and state when dialog opens/closes
+  useEffect(() => {
+    if (open) {
+      // Reset everything when dialog opens
+      setCurrentStep(0);
+      setIsSubmitting(false);
+      setUsernameAvailable(null);
+      setEmailAvailable(null);
+      setUsernameChecking(false);
+      setEmailChecking(false);
+      form.reset({
+        userType: "simple",
+        firstName: "",
+        lastName: "",
+        cin: "",
+        companyName: "",
+        address: "",
+        city: "",
+        country: "",
+        phoneNumber: "",
+        webSite: "",
+        username: "",
+        email: "",
+        passwordHash: "",
+        roleName: "SimpleUser",
+      });
+    }
+  }, [open, form]);
+
   // Helper functions
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -289,15 +320,27 @@ export function CreateUserMultiStep({
       case 3:
         fieldsToValidate = ["username", "email"];
         // Also check if username and email are available
-        if (!usernameAvailable) {
+        if (usernameAvailable === false) {
           form.setError("username", {
-            message: "Username is already taken",
+            message: "This username is already taken. Please choose a different one.",
           });
           return false;
         }
-        if (!emailAvailable) {
+        if (usernameAvailable === null && username && username.length >= 3) {
+          form.setError("username", {
+            message: "Please wait while we check username availability...",
+          });
+          return false;
+        }
+        if (emailAvailable === false) {
           form.setError("email", {
-            message: "Email is already registered",
+            message: "This email address is already registered. Please use a different email.",
+          });
+          return false;
+        }
+        if (emailAvailable === null && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          form.setError("email", {
+            message: "Please wait while we check email availability...",
           });
           return false;
         }
@@ -332,8 +375,13 @@ export function CreateUserMultiStep({
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
-  // Submit the form
+  // Submit the form - only called when explicitly triggered on review step
   const onSubmit = async (values: FormValues) => {
+    // Only allow submission from the review step
+    if (currentStep !== 6) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -353,6 +401,8 @@ export function CreateUserMultiStep({
         country: values.country,
         webSite: values.webSite,
         userType: values.userType,
+        // CIN field for personal users (optional)
+        cin: userType === "simple" ? values.cin : undefined,
       };
 
       await adminService.createUser(userData);
@@ -378,6 +428,25 @@ export function CreateUserMultiStep({
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle form submission - prevent auto-submission
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Only allow submission on the review step when explicitly triggered
+    if (currentStep === 6) {
+      form.handleSubmit(onSubmit)(e);
+    }
+  };
+
+  // Handle keyboard events - prevent Enter key from submitting form on non-review steps
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && currentStep !== 6) {
+      e.preventDefault();
+      // Trigger next step instead of form submission
+      nextStep();
     }
   };
 
@@ -453,12 +522,12 @@ export function CreateUserMultiStep({
         {/* Form content */}
         <div className="flex-1 overflow-y-auto">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={handleFormSubmit} onKeyDown={handleKeyDown} className="space-y-5">
               {/* Step indicators */}
               <div className="px-6 pt-6 pb-0">
                 <div className="flex justify-between items-center">
                   {steps.map((step) => (
-                    <div key={step.id} className="flex flex-col items-center">
+                    <div key={step.id} className="flex flex-col items-center min-h-[60px]">
                       <div
                         className={`relative flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-300 ${
                           currentStep === step.id
@@ -491,7 +560,7 @@ export function CreateUserMultiStep({
                         <motion.span
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="absolute mt-12 text-xs text-blue-300 font-medium text-center w-20"
+                          className="text-xs text-blue-300 font-medium text-center w-20 mt-3"
                         >
                           {step.title}
                         </motion.span>
@@ -558,7 +627,8 @@ export function CreateUserMultiStep({
                   </Button>
                 ) : (
                   <Button
-                    type="submit"
+                    type="button"
+                    onClick={() => form.handleSubmit(onSubmit)()}
                     disabled={isSubmitting}
                     className="bg-blue-600/80 hover:bg-blue-600 text-white border border-blue-500/50 hover:border-blue-400/70 transition-all duration-200 flex items-center gap-2"
                   >

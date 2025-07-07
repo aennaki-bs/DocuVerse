@@ -107,6 +107,13 @@ namespace DocManagementBackend.Controllers
             if (role == null)
                 return BadRequest("Invalid RoleName.");
             
+            if (request.ResponsibilityCenterId.HasValue)
+            {
+                var responsibilityCentre = await _context.ResponsibilityCentres.FindAsync(request.ResponsibilityCenterId);
+                if (responsibilityCentre == null)
+                    return BadRequest("Invalid ResponsibilityCenterId.");
+            }
+            
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.PasswordHash);
             var emailVerificationCode = new Random().Next(100000, 999999).ToString();
             var newUser = new User
@@ -121,7 +128,14 @@ namespace DocManagementBackend.Controllers
                 CreatedAt = DateTime.UtcNow,
                 RoleId = roleId,
                 EmailVerificationCode = emailVerificationCode,
-                ProfilePicture = "/images/profile/default.png"
+                ProfilePicture = "/images/profile/default.png",
+                City = request.City,
+                Country = request.Country,
+                Address = request.Address,
+                Identity = request.Identity,
+                PhoneNumber = request.PhoneNumber,
+                ResponsibilityCentreId = request.ResponsibilityCenterId.HasValue ? request.ResponsibilityCenterId.Value : null,
+                UserType = request.UserType
             };
             
             string? frontDomain = Environment.GetEnvironmentVariable("FRONTEND_DOMAIN");
@@ -154,7 +168,14 @@ namespace DocManagementBackend.Controllers
                 newUser.LastName,
                 Role = role.RoleName,
                 newUser.IsActive,
-                newUser.CreatedAt
+                newUser.CreatedAt,
+                newUser.ResponsibilityCentreId,
+                newUser.UserType,
+                newUser.City,
+                newUser.Country,
+                newUser.Address,
+                newUser.Identity,
+                newUser.PhoneNumber
             });
         }
 
@@ -191,11 +212,31 @@ namespace DocManagementBackend.Controllers
             if (!string.IsNullOrEmpty(request.LastName))
                 user.LastName = request.LastName;
             
-            if (request.IsEmailConfirmed.HasValue)
-                user.IsEmailConfirmed = request.IsEmailConfirmed.Value;
-            
             if (request.IsActive.HasValue)
                 user.IsActive = request.IsActive.Value;
+            
+            if (!string.IsNullOrEmpty(request.City))
+                user.City = request.City;
+            
+            if (!string.IsNullOrEmpty(request.Country))
+                user.Country = request.Country;
+            
+            if (!string.IsNullOrEmpty(request.Address))
+                user.Address = request.Address;
+            
+            if (!string.IsNullOrEmpty(request.Identity))
+                user.Identity = request.Identity;
+            
+            if (!string.IsNullOrEmpty(request.PhoneNumber)) 
+                user.PhoneNumber = request.PhoneNumber;
+            
+            if (request.ResponsibilityCenterId.HasValue)
+            {
+                var responsibilityCentre = await _context.ResponsibilityCentres.FindAsync(request.ResponsibilityCenterId);
+                if (responsibilityCentre == null)   
+                    return BadRequest("Invalid ResponsibilityCenterId.");
+                user.ResponsibilityCentreId = request.ResponsibilityCenterId.Value;
+            }
             
             if (!string.IsNullOrEmpty(request.RoleName))
             {

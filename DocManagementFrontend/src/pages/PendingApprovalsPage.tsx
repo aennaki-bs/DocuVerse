@@ -174,6 +174,16 @@ export default function PendingApprovalsPage() {
   const handleApprovalResponse = async () => {
     if (!selectedApproval || !responseType) return;
 
+    // Validate that comments are provided when rejecting
+    if (responseType === "reject" && !comments.trim()) {
+      toast({
+        title: "Comments Required",
+        description: "Please provide a reason for rejection.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       // Use approvalId if available, otherwise fall back to id
       const approvalId = selectedApproval.approvalId || selectedApproval.id;
@@ -930,6 +940,9 @@ export default function PendingApprovalsPage() {
                 className="text-sm font-medium text-blue-700 dark:text-gray-400"
               >
                 Comments
+                {responseType === "reject" && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
               </label>
               <Textarea
                 id="comments"
@@ -943,6 +956,11 @@ export default function PendingApprovalsPage() {
                 onChange={(e) => setComments(e.target.value)}
                 required={responseType === "reject"}
               />
+              {responseType === "reject" && !comments.trim() && (
+                <p className="text-xs text-red-500 mt-1">
+                  Comments are required for rejection
+                </p>
+              )}
             </div>
           </div>
 
@@ -958,6 +976,7 @@ export default function PendingApprovalsPage() {
             <Button
               type="button"
               onClick={handleApprovalResponse}
+              disabled={responseType === "reject" && !comments.trim()}
               className={
                 responseType === "approve"
                   ? "bg-green-600 hover:bg-green-700 text-white"

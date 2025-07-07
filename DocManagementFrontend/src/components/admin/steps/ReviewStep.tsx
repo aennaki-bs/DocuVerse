@@ -63,6 +63,9 @@ export function ReviewStep({ form }: ReviewStepProps) {
                 ? [
                     { label: "First Name", value: values.firstName },
                     { label: "Last Name", value: values.lastName },
+                    ...(values.cin
+                      ? [{ label: "CIN", value: values.cin }]
+                      : []),
                   ]
                 : [{ label: "Company Name", value: values.companyName }]
             }

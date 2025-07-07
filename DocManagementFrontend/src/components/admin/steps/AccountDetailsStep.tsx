@@ -79,6 +79,27 @@ export function AccountDetailsStep({ form }: AccountDetailsStepProps) {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="cin"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel className="text-blue-200">
+                        CIN (National Identity Card) <span className="text-blue-400 text-xs">(Optional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter CIN number"
+                          {...field}
+                          value={field.value || ""}
+                          className="bg-[#111633] border-blue-900/50 text-white placeholder:text-blue-300/50 focus:border-blue-500/50"
+                        />
+                      </FormControl>
+                      <FormMessage className="text-red-300" />
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
           </motion.div>

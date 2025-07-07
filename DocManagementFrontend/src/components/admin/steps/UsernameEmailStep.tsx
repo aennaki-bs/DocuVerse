@@ -80,14 +80,22 @@ export function UsernameEmailStep({
                   {t("userManagement.chooseUsername")}
                 </FormLabel>
                 <FormControl>
-                  <div className="relative">
+                  <div className={`relative ${
+                    usernameAvailable === false ? "ring-1 ring-red-500/30 rounded-md" : ""
+                  }`}>
                     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400">
                       <User className="h-4 w-4" />
                     </div>
                     <Input
-                      placeholder={t("userManagement.usernamePlaceholder")}
+                      placeholder="Enter username"
                       {...field}
-                      className="pl-10 bg-[#111633] border-blue-900/50 text-white placeholder:text-blue-300/50 focus:border-blue-500/50"
+                      className={`pl-10 pr-10 bg-[#111633] text-white placeholder:text-blue-300/50 focus:border-blue-500/50 ${
+                        usernameAvailable === false 
+                          ? "border-red-500/50 focus:border-red-500/70" 
+                          : usernameAvailable === true
+                          ? "border-green-500/50 focus:border-green-500/70"
+                          : "border-blue-900/50"
+                      }`}
                     />
                     {renderAvailabilityIndicator(
                       usernameChecking,
@@ -97,18 +105,36 @@ export function UsernameEmailStep({
                   </div>
                 </FormControl>
                 <FormMessage className="text-red-300" />
-                {usernameAvailable && (
-                  <p className="text-xs text-green-400 mt-1">
-                    {t("userManagement.usernameAvailable")}
+                {usernameAvailable === true && (
+                  <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                    <Check className="h-3 w-3" />
+                    Username is available and ready to use
                   </p>
+                )}
+                {usernameAvailable === false && (
+                  <div className="text-xs text-red-400 mt-1 space-y-1">
+                    <p className="flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      This username is already taken
+                    </p>
+                    <p className="text-blue-300">Try adding numbers or letters to make it unique</p>
+                  </div>
                 )}
               </FormItem>
             )}
           />
 
-          <p className="text-xs text-blue-400 mt-1">
-            {t("userManagement.usernameRequirement")}
-          </p>
+          {usernameChecking && (
+            <p className="text-xs text-blue-400 mt-1 flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Checking username availability...
+            </p>
+          )}
+          {!usernameChecking && (
+            <p className="text-xs text-blue-400 mt-1">
+              Username must be at least 3 characters and unique in the system
+            </p>
+          )}
         </div>
       </div>
 
@@ -128,15 +154,23 @@ export function UsernameEmailStep({
               <FormItem>
                 <FormLabel className="text-blue-200">{t("userManagement.emailAddressLabel")}</FormLabel>
                 <FormControl>
-                  <div className="relative">
+                  <div className={`relative ${
+                    emailAvailable === false ? "ring-1 ring-red-500/30 rounded-md" : ""
+                  }`}>
                     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400">
                       <AtSign className="h-4 w-4" />
                     </div>
                     <Input
                       type="email"
-                      placeholder={t("userManagement.emailPlaceholder")}
+                      placeholder="user@example.com"
                       {...field}
-                      className="pl-10 bg-[#111633] border-blue-900/50 text-white placeholder:text-blue-300/50 focus:border-blue-500/50"
+                      className={`pl-10 pr-10 bg-[#111633] text-white placeholder:text-blue-300/50 focus:border-blue-500/50 ${
+                        emailAvailable === false 
+                          ? "border-red-500/50 focus:border-red-500/70" 
+                          : emailAvailable === true
+                          ? "border-green-500/50 focus:border-green-500/70"
+                          : "border-blue-900/50"
+                      }`}
                     />
                     {renderAvailabilityIndicator(
                       emailChecking,
@@ -146,18 +180,36 @@ export function UsernameEmailStep({
                   </div>
                 </FormControl>
                 <FormMessage className="text-red-300" />
-                {emailAvailable && (
-                  <p className="text-xs text-green-400 mt-1">
-                    {t("userManagement.emailAvailable")}
+                {emailAvailable === true && (
+                  <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                    <Check className="h-3 w-3" />
+                    Email address is available and ready to use
                   </p>
+                )}
+                {emailAvailable === false && (
+                  <div className="text-xs text-red-400 mt-1 space-y-1">
+                    <p className="flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      This email address is already registered
+                    </p>
+                    <p className="text-blue-300">Please use a different email address or contact support if this is your email</p>
+                  </div>
                 )}
               </FormItem>
             )}
           />
 
-          <p className="text-xs text-blue-400 mt-1">
-            {t("userManagement.emailVerification")}
-          </p>
+          {emailChecking && (
+            <p className="text-xs text-blue-400 mt-1 flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Checking email availability...
+            </p>
+          )}
+          {!emailChecking && (
+            <p className="text-xs text-blue-400 mt-1">
+              A verification email will be sent to this address
+            </p>
+          )}
         </div>
       </div>
     </div>

@@ -26,7 +26,7 @@ import { LoadingState } from "@/components/circuits/document-flow/LoadingState";
 import { NoCircuitAssignedCard } from "@/components/circuits/document-flow/NoCircuitAssignedCard";
 import { ErrorMessage } from "./ErrorMessage";
 import { DocumentApprovalStatus } from "@/components/document-flow/DocumentApprovalStatus";
-import { ApprovalHistorySection } from '@/components/document-workflow/ApprovalHistory';
+import { ApprovalHistoryComponent } from '@/components/document-workflow/ApprovalHistory';
 import { useErpArchivalDetection } from '@/hooks/useErpArchivalDetection';
 
 interface WorkflowDialogProps {
