@@ -65,116 +65,116 @@ DocuVerse is a sophisticated, full-stack document management system designed for
 
 Experience the power of DocuVerse through its intuitive interface:
 
-![Dashboard Overview](images/Screenshot 2025-07-02 161001.png)
+![Dashboard Overview](images/Screenshot%202025-07-02%20161001.png)
 *Modern dashboard with key metrics, recent activities, and quick actions*
 
-![Main Navigation](images/Screenshot 2025-07-02 161037.png)
+![Main Navigation](images/Screenshot%202025-07-02%20161037.png)
 *Clean, organized navigation with role-based menu items*
 
 ### 📄 **Document Management**
 
 #### **Document Creation & Editing**
-![Document Creation](images/Screenshot 2025-07-02 161130.png)
+![Document Creation](images/Screenshot%202025-07-02%20161130.png)
 *Streamlined document creation with intelligent form validation*
 
-![Document Editing](images/Screenshot 2025-07-02 161143.png)
+![Document Editing](images/Screenshot%202025-07-02%20161143.png)
 *Advanced document editor with real-time collaboration features*
 
 #### **Document Listing & Search**
-![Document List](images/Screenshot 2025-07-02 161154.png)
+![Document List](images/Screenshot%202025-07-02%20161154.png)
 *Powerful document listing with advanced filtering and search capabilities*
 
-![Document Details](images/Screenshot 2025-07-02 161205.png)
+![Document Details](images/Screenshot%202025-07-02%20161205.png)
 *Comprehensive document view with metadata, attachments, and workflow status*
 
 ### 🔄 **Workflow & Approval System**
 
 #### **Circuit Management**
-![Workflow Circuits](images/Screenshot 2025-07-02 161217.png)
+![Workflow Circuits](images/Screenshot%202025-07-02%20161217.png)
 *Visual workflow designer with drag-and-drop circuit creation*
 
-![Circuit Configuration](images/Screenshot 2025-07-02 161235.png)
+![Circuit Configuration](images/Screenshot%202025-07-02%20161235.png)
 *Advanced circuit configuration with conditional routing and parallel processing*
 
 #### **Approval Process**
-![Approval Dashboard](images/Screenshot 2025-07-02 161248.png)
+![Approval Dashboard](images/Screenshot%202025-07-02%20161248.png)
 *Real-time approval dashboard with pending actions and notifications*
 
-![Workflow Visualization](images/Screenshot 2025-07-02 161301.png)
+![Workflow Visualization](images/Screenshot%202025-07-02%20161301.png)
 *Interactive workflow visualization showing current status and next steps*
 
 ### 👥 **User & Administration**
 
 #### **User Management**
-![User Administration](images/Screenshot 2025-07-02 161314.png)
+![User Administration](images/Screenshot%202025-07-02%20161314.png)
 *Comprehensive user management with role assignment and permissions*
 
-![User Profile](images/Screenshot 2025-07-02 161324.png)
+![User Profile](images/Screenshot%202025-07-02%20161324.png)
 *Detailed user profiles with activity tracking and preferences*
 
 #### **System Configuration**
-![System Settings](images/Screenshot 2025-07-02 161339.png)
+![System Settings](images/Screenshot%202025-07-02%20161339.png)
 *Flexible system configuration for organizational needs*
 
-![Document Types](images/Screenshot 2025-07-02 161351.png)
+![Document Types](images/Screenshot%202025-07-02%20161351.png)
 *Dynamic document type management with custom fields and validation*
 
 ### 📊 **Advanced Features**
 
 #### **Line Item Management**
-![Line Items](images/Screenshot 2025-07-02 161400.png)
+![Line Items](images/Screenshot%202025-07-02%20161400.png)
 *Sophisticated line item editor with dynamic fields and calculations*
 
-![Element Configuration](images/Screenshot 2025-07-02 161412.png)
+![Element Configuration](images/Screenshot%202025-07-02%20161412.png)
 *Configurable line elements with custom types and validation rules*
 
 #### **Reference Data Management**
-![Reference Tables](images/Screenshot 2025-07-02 161424.png)
+![Reference Tables](images/Screenshot%202025-07-02%20161424.png)
 *Centralized reference data management for consistency across documents*
 
-![Customer Management](images/Screenshot 2025-07-02 161434.png)
+![Customer Management](images/Screenshot%202025-07-02%20161434.png)
 *Integrated customer and vendor management with ERP synchronization*
 
 #### **Approval Groups & Workflows**
-![Approval Groups](images/Screenshot 2025-07-02 161443.png)
+![Approval Groups](images/Screenshot%202025-07-02%20161443.png)
 *Flexible approval group configuration with delegation support*
 
-![Step Management](images/Screenshot 2025-07-02 161453.png)
+![Step Management](images/Screenshot%202025-07-02%20161453.png)
 *Advanced step configuration with conditional logic and escalation rules*
 
 ### 🎨 **User Experience & Interface**
 
 #### **Responsive Design**
-![Mobile View](images/Screenshot 2025-07-02 161504.png)
+![Mobile View](images/Screenshot%202025-07-02%20161504.png)
 *Fully responsive design optimized for all device types*
 
-![Tablet Interface](images/Screenshot 2025-07-02 161514.png)
+![Tablet Interface](images/Screenshot%202025-07-02%20161514.png)
 *Touch-optimized interface for tablet users*
 
 #### **Dark Theme Support**
-![Dark Mode](images/Screenshot 2025-07-02 161529.png)
+![Dark Mode](images/Screenshot%202025-07-02%20161529.png)
 *Professional dark theme for reduced eye strain during extended use*
 
-![Theme Switching](images/Screenshot 2025-07-02 161540.png)
+![Theme Switching](images/Screenshot%202025-07-02%20161540.png)
 *Seamless theme switching with user preference persistence*
 
 ### 📈 **Analytics & Reporting**
 
 #### **Performance Metrics**
-![Analytics Dashboard](images/Screenshot 2025-07-02 161553.png)
+![Analytics Dashboard](images/Screenshot%202025-07-02%20161553.png)
 *Comprehensive analytics with key performance indicators*
 
-![Workflow Analytics](images/Screenshot 2025-07-02 161615.png)
+![Workflow Analytics](images/Screenshot%202025-07-02%20161615.png)
 *Detailed workflow performance analysis and bottleneck identification*
 
 #### **Business Intelligence**
-![Reports](images/Screenshot 2025-07-02 161634.png)
+![Reports](images/Screenshot%202025-07-02%20161634.png)
 *Advanced reporting capabilities with customizable charts and exports*
 
-![Data Visualization](images/Screenshot 2025-07-02 161650.png)
+![Data Visualization](images/Screenshot%202025-07-02%20161650.png)
 *Interactive data visualization for business insights*
 
-![Dashboard Customization](images/Screenshot 2025-07-02 161704.png)
+![Dashboard Customization](images/Screenshot%202025-07-02%20161704.png)
 *Customizable dashboards tailored to user roles and preferences*
 
 ---
