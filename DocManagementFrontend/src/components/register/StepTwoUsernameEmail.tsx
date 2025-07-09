@@ -38,14 +38,14 @@ const UsernameEmailForm: React.FC = () => {
 
     // If the field is valid, check with the API
     if (isValid && value) {
-      if (name === "username" && value.length >= 3) {
+      if (name === "username" && value.length >= 4) {
         setIsChecking((prev) => ({ ...prev, username: true }));
         // API call to validate username
         await validateUsername();
         setIsChecking((prev) => ({ ...prev, username: false }));
       } else if (name === "email" && value.includes("@")) {
         setIsChecking((prev) => ({ ...prev, email: true }));
-        // API call to validate email
+        // API call to validate email (database check only)
         await validateEmail();
         setIsChecking((prev) => ({ ...prev, email: false }));
       }
@@ -71,8 +71,8 @@ const UsernameEmailForm: React.FC = () => {
 
     if (!value.trim()) {
       error = `${name.charAt(0).toUpperCase() + name.slice(1)} is required`;
-    } else if (name === "username" && value.length < 3) {
-      error = "Username must be at least 3 characters";
+    } else if (name === "username" && value.length < 4) {
+      error = "Username must be at least 4 characters";
     } else if (name === "email") {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(value)) {
@@ -84,67 +84,12 @@ const UsernameEmailForm: React.FC = () => {
     return !error;
   };
 
-  // Validate all fields
-  const validateForm = async () => {
-    const newErrors: Record<string, string> = {};
-    let isValid = true;
 
-    // Validate username
-    if (!formData.username?.trim()) {
-      newErrors.username = "Username is required";
-      isValid = false;
-    } else if (formData.username.length < 3) {
-      newErrors.username = "Username must be at least 3 characters";
-      isValid = false;
-    }
-
-    // Validate email
-    if (!formData.email?.trim()) {
-      newErrors.email = "Email is required";
-      isValid = false;
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        newErrors.email = "Please enter a valid email address";
-        isValid = false;
-      }
-    }
-
-    setErrors(newErrors);
-
-    // If client validation passes, perform API validation
-    if (isValid) {
-      setIsChecking({ username: true, email: true });
-
-      // Check both username and email availability
-      const [usernameValid, emailValid] = await Promise.all([
-        validateUsername(),
-        validateEmail(),
-      ]);
-
-      setIsChecking({ username: false, email: false });
-
-      // If either validation fails, update errors from the context
-      if (!usernameValid || !emailValid) {
-        if (stepValidation.errors.username) {
-          newErrors.username = stepValidation.errors.username;
-        }
-        if (stepValidation.errors.email) {
-          newErrors.email = stepValidation.errors.email;
-        }
-        setErrors(newErrors);
-        return false;
-      }
-
-      return usernameValid && emailValid;
-    }
-
-    return isValid;
-  };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Component form submission started');
 
     // Mark all fields as touched
     setTouched({
@@ -152,10 +97,15 @@ const UsernameEmailForm: React.FC = () => {
       email: true,
     });
 
-    // Validate all fields
-    const isValid = await validateForm();
-    if (isValid) {
-      nextStep();
+    // Basic client-side validation
+    const clientValid = validateField('username', formData.username || '') && 
+                       validateField('email', formData.email || '');
+
+    if (clientValid) {
+      console.log('Client validation passed, calling nextStep');
+      await nextStep(); // nextStep now handles the API validation
+    } else {
+      console.log('Client validation failed');
     }
   };
 
@@ -260,12 +210,12 @@ const UsernameEmailForm: React.FC = () => {
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-2.5 rounded-md hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-1"
-          disabled={isChecking.username || isChecking.email}
+          disabled={isChecking.username || isChecking.email || stepValidation.isLoading}
         >
-          {isChecking.username || isChecking.email ? (
+          {isChecking.username || isChecking.email || stepValidation.isLoading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Verifying...
+              {stepValidation.isLoading ? "Verifying email existence..." : "Checking availability..."}
             </>
           ) : (
             "Continue"

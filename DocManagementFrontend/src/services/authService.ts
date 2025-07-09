@@ -276,35 +276,114 @@ const authService = {
       
       console.log('Username validation response:', response.data);
       
-      // Backend returns string "True" or "False"
+      // Handle new JSON response format
+      if (response.data && typeof response.data === 'object') {
+        const { isValid, reason, message } = response.data;
+        
+        if (!isValid) {
+          // Throw specific error based on reason
+          throw new Error(message || 'Username validation failed');
+        }
+        
+        return true;
+      }
+      
+      // Fallback for old string format
       if (typeof response.data === 'string') {
         return response.data === "True";
       }
       
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Username validation error:', error);
-      throw error;
+      
+      // If it's our custom error message, re-throw it
+      if (error.message && !error.response) {
+        throw error;
+      }
+      
+      // Handle network or other unexpected errors
+      throw new Error('Username validation failed. Please try again.');
     }
   },
 
   validateEmail: async (email: string): Promise<boolean> => {
     try {
-      console.log('Validating email:', email);
+      console.log('Validating email (database check only):', email);
       const request: EmailValidationRequest = { email };
       const response = await api.post('/Auth/valide-email', request);
       
       console.log('Email validation response:', response.data);
       
-      // Backend returns string "True" or "False"
+      // Handle new JSON response format
+      if (response.data && typeof response.data === 'object') {
+        const { isValid, reason, message } = response.data;
+        
+        if (!isValid) {
+          // Throw specific error based on reason
+          throw new Error(message || 'Email validation failed');
+        }
+        
+        return true;
+      }
+      
+      // Fallback for old string format
       if (typeof response.data === 'string') {
         return response.data === "True";
       }
       
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Email validation error:', error);
-      throw error;
+      
+      // If it's our custom error message, re-throw it
+      if (error.message && !error.response) {
+        throw error;
+      }
+      
+      // Handle network or other unexpected errors
+      throw new Error('Email validation failed. Please try again.');
+    }
+  },
+
+  verifyEmailExists: async (email: string): Promise<boolean> => {
+    try {
+      console.log('AuthService.verifyEmailExists called with email:', email);
+      const request: EmailValidationRequest = { email };
+      console.log('Making POST request to /Auth/verify-email-exists');
+      const response = await api.post('/Auth/verify-email-exists', request);
+      
+      console.log('AuthService received response:', response.data);
+      
+      // Handle JSON response format with new structure
+      if (response.data && typeof response.data === 'object') {
+        const { isAvailable, exists, reason, message } = response.data;
+        console.log('Parsed response - isAvailable:', isAvailable, 'exists:', exists, 'reason:', reason, 'message:', message);
+        
+        if (!isAvailable) {
+          console.log('Email is not available for registration, throwing error');
+          // Throw specific error based on reason
+          throw new Error(message || 'Email verification failed');
+        }
+        
+        console.log('Email is available for registration, returning true');
+        return true;
+      }
+      
+      console.log('Unexpected response format, returning false');
+      return false;
+    } catch (error: any) {
+      console.error('AuthService email existence verification error:', error);
+      
+      // If it's our custom error message, re-throw it
+      if (error.message && !error.response) {
+        console.log('Re-throwing custom error message');
+        throw error;
+      }
+      
+      // Handle network or other unexpected errors
+      console.log('Throwing generic error message');
+      throw new Error('Email verification failed. Please try again.');
     }
   },
 

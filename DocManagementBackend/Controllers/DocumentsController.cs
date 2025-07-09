@@ -669,7 +669,8 @@ namespace DocManagementBackend.Controllers
                 TypeAttr = request.TypeAttr,
                 TierType = request.TierType,
                 DocumentCounter = 0,
-                DocCounter = 0
+                DocCounter = 0,
+                TypeNumber = 16
             };
             _context.DocumentTypes.Add(type);
             await _context.SaveChangesAsync();

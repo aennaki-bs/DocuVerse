@@ -89,72 +89,7 @@ export default function Dashboard() {
       </div>
 
       {/* Professional charts section */}
-      <DashboardCard className="p-0 overflow-hidden">
-        <Tabs defaultValue="activity" className="w-full">
-          <div className="flex items-center justify-between p-6 border-b border-border bg-card">
-            <TabsList className="bg-muted">
-              <TabsTrigger
-                value="activity"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
-              >
-                {t("dashboard.activityOverview")}
-              </TabsTrigger>
-              <TabsTrigger
-                value="weekly"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
-              >
-                {t("dashboard.weeklyStats")}
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant={timeRange === "day" ? "default" : "outline"}
-                size="sm"
-                className={`border-border transition-all duration-200 ${
-                  timeRange === "day" ? "shadow-sm" : "hover:bg-accent"
-                }`}
-                onClick={() => setTimeRange("day")}
-              >
-                {t("dashboard.timeRange24h")}
-              </Button>
-              <Button
-                variant={timeRange === "week" ? "default" : "outline"}
-                size="sm"
-                className={`border-border transition-all duration-200 ${
-                  timeRange === "week" ? "shadow-sm" : "hover:bg-accent"
-                }`}
-                onClick={() => setTimeRange("week")}
-              >
-                {t("dashboard.timeRange7d")}
-              </Button>
-              <Button
-                variant={timeRange === "month" ? "default" : "outline"}
-                size="sm"
-                className={`border-border transition-all duration-200 ${
-                  timeRange === "month" ? "shadow-sm" : "hover:bg-accent"
-                }`}
-                onClick={() => setTimeRange("month")}
-              >
-                {t("dashboard.timeRange30d")}
-              </Button>
-            </div>
-          </div>
-
-          <TabsContent value="activity" className="m-0 p-6">
-            <div className="h-64 rounded-lg bg-muted/20 p-4">
-              <DocumentActivityChart data={documentActivity || []} />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="weekly" className="m-0 p-6">
-            <div className="h-64 rounded-lg bg-muted/20 p-4">
-              <WeeklyStatsChart data={dashboardStats?.weeklyStats || []} />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </DashboardCard>
-
+      
       {/* Professional recent documents section */}
       {recentDocuments && recentDocuments.length > 0 && (
         <DashboardCard

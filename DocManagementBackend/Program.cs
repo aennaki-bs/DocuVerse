@@ -113,6 +113,9 @@ builder.Services.AddScoped<UserAuthorizationService>();
 builder.Services.AddScoped<LineElementService>();
 builder.Services.AddScoped<IDocumentErpArchivalService, DocumentErpArchivalService>();
 
+// Add HTTP Client and Email Verification Service
+builder.Services.AddHttpClient<IEmailVerificationService, EmailVerificationService>();
+
 // Add API Sync Services
 builder.Services.AddApiSyncServices();
 

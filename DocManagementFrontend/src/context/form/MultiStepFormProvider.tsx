@@ -81,7 +81,21 @@ export const MultiStepFormProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Next step logic, handle extra steps.
-  const nextStep = () => {
+  const nextStep = async () => {
+    console.log('NextStep called for step:', currentStep);
+    
+    // For critical steps, validate before proceeding
+    if (currentStep === 3) { // Username/Email step
+      console.log('Validating step 3 before proceeding');
+      const isValid = await validateCurrentStep();
+      console.log('Step 3 validation result:', isValid);
+      
+      if (!isValid) {
+        console.log('Step 3 validation failed, not proceeding');
+        return;
+      }
+    }
+    
     // Clear all validation errors when moving to next step
     setStepValidation((prev) => ({
       ...prev,
@@ -92,7 +106,10 @@ export const MultiStepFormProvider: React.FC<{ children: React.ReactNode }> = ({
     // Both flows now have 7 steps (including type selection)
     // Personal flow: 0. Type Selection, 1. Info, 2. Address, 3. Username/Email, 4. Password, 5. Admin Key, 6. Summary
     // Company flow: 0. Type Selection, 1. Info, 2. Address, 3. Username/Email, 4. Password, 5. Admin Key, 6. Summary
-    if (currentStep < 6) setCurrentStep(currentStep + 1);
+    if (currentStep < 6) {
+      console.log('Proceeding to next step:', currentStep + 1);
+      setCurrentStep(currentStep + 1);
+    }
   };
 
   // Previous step logic
@@ -128,11 +145,13 @@ export const MultiStepFormProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const validateUsername = async (): Promise<boolean> => {
-    return validateUsernameUtil(formData.username, setStepValidation);
+    const { validateUsername: validateUsernameUtil } = await import('./utils/validationUtils');
+    return validateUsernameUtil(formData.username!, setStepValidation);
   };
 
   const validateEmail = async (): Promise<boolean> => {
-    return validateEmailUtil(formData.email, setStepValidation);
+    const { validateEmail: validateEmailUtil } = await import('./utils/validationUtils');
+    return validateEmailUtil(formData.email!, setStepValidation);
   };
 
   // Validate the current step
@@ -183,12 +202,64 @@ export const MultiStepFormProvider: React.FC<{ children: React.ReactNode }> = ({
           return true;
 
         case 3: // Username/Email
-          // Username validation
-          const isUserValid = await validateUsername();
-          // Email validation
-          const isEmailValid = await validateEmail();
+          console.log('Context validateCurrentStep - step 3 (Username/Email)');
+          
+          // Set loading state at the beginning
+          setStepValidation((prev) => ({
+            ...prev,
+            isLoading: true,
+            errors: { ...prev.errors, email: '', username: '' }
+          }));
+          
+          try {
+            // Username validation
+            console.log('Context validating username');
+            const { validateUsername } = await import('./utils/validationUtils');
+            const isUserValid = await validateUsername(formData.username!, setStepValidation, false);
+            console.log('Context username validation result:', isUserValid);
+            
+            if (!isUserValid) {
+              console.log('Username validation failed, stopping validation');
+              setStepValidation((prev) => ({ ...prev, isLoading: false }));
+              return false;
+            }
 
-          return isUserValid && isEmailValid;
+            // Email validation (database check)
+            console.log('Context validating email (database check)');
+            const { validateEmail } = await import('./utils/validationUtils');
+            const isEmailValid = await validateEmail(formData.email!, setStepValidation, false);
+            console.log('Context email validation result:', isEmailValid);
+            
+            if (!isEmailValid) {
+              console.log('Email database validation failed, stopping validation');
+              setStepValidation((prev) => ({ ...prev, isLoading: false }));
+              return false;
+            }
+
+            // Email existence verification (external API)
+            console.log('Context verifying email existence');
+            const { verifyEmailExists } = await import('./utils/validationUtils');
+            const emailExists = await verifyEmailExists(formData.email!, setStepValidation, false);
+            console.log('Context email existence verification result:', emailExists);
+            
+            if (!emailExists) {
+              console.log('Email existence verification failed, stopping validation');
+              setStepValidation((prev) => ({ ...prev, isLoading: false }));
+              return false;
+            }
+            
+            console.log('All validations passed for step 3');
+            setStepValidation((prev) => ({ ...prev, isLoading: false }));
+            return true;
+          } catch (error) {
+            console.error('Email existence verification error:', error);
+            setStepValidation((prev) => ({
+              ...prev,
+              isLoading: false,
+              errors: { ...prev.errors, email: 'Email verification failed. Please try again.' },
+            }));
+            return false;
+          }
 
         case 4: // Password
           if (!formData.password) {

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using DocManagementBackend.Data;
 using DocManagementBackend.Models;
 using DocManagementBackend.Utils;
+using DocManagementBackend.Services;
 using Microsoft.AspNetCore.Authorization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -15,25 +16,98 @@ namespace DocManagementBackend.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _config;
-        public AuthController(ApplicationDbContext context, IConfiguration config)
+        private readonly IEmailVerificationService _emailVerificationService;
+        
+        public AuthController(ApplicationDbContext context, IConfiguration config, IEmailVerificationService emailVerificationService)
         {
-            _context = context; _config = config;
+            _context = context; 
+            _config = config;
+            _emailVerificationService = emailVerificationService;
         }
 
         [HttpPost("valide-email")]
         public async Task<IActionResult> ValideEmail([FromBody] ValideUsernameRequest request)
         {
-            if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-                return Ok("False");
-            return Ok("True");
+            try
+            {
+                // Only check if email already exists in database (fast check)
+                if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+                    return Ok(new { isValid = false, reason = "already_registered", message = "Email already registered." });
+                
+                // Email is available in database
+                return Ok(new { isValid = true, reason = "valid", message = "Email is available." });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Email validation error: {ex.Message}");
+                return Ok(new { isValid = false, reason = "validation_error", message = "Email validation failed. Please try again." });
+            }
+        }
+
+        [HttpPost("verify-email-exists")]
+        public async Task<IActionResult> VerifyEmailExists([FromBody] ValideUsernameRequest request)
+        {
+            try
+            {
+                // First check if email already exists in database
+                if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+                    return Ok(new { 
+                        isAvailable = false, 
+                        exists = true,
+                        reason = "already_registered", 
+                        message = "Email already registered." 
+                    });
+                
+                // Then verify if the email actually exists using external service
+                var emailExists = await _emailVerificationService.VerifyEmailExistsAsync(request.Email);
+                
+                if (!emailExists)
+                {
+                    return Ok(new { 
+                        isAvailable = false, 
+                        exists = false,
+                        reason = "email_not_exist", 
+                        message = "This email address does not exist. Please enter a valid email address." 
+                    });
+                }
+                
+                // Email exists and is available for registration
+                return Ok(new { 
+                    isAvailable = true, 
+                    exists = true,
+                    reason = "valid", 
+                    message = "Email exists and is available for registration." 
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Email existence verification error: {ex.Message}");
+                return Ok(new { 
+                    isAvailable = false, 
+                    exists = false,
+                    reason = "verification_error", 
+                    message = "Email verification failed. Please try again." 
+                });
+            }
         }
 
         [HttpPost("valide-username")]
         public async Task<IActionResult> ValideUsername([FromBody] ValideUsernameRequest request)
         {
-            if (await _context.Users.AnyAsync(u => u.Username == request.Username))
-                return Ok("False");
-            return Ok("True");
+            try
+            {
+                if (await _context.Users.AnyAsync(u => u.Username == request.Username))
+                {
+                    return Ok(new { isValid = false, reason = "username_exists", message = "Username already taken." });
+                }
+                
+                return Ok(new { isValid = true, reason = "valid", message = "Username is available." });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Username validation error: {ex.Message}");
+                return Ok(new { isValid = false, reason = "validation_error", message = "Username validation failed. Please try again." });
+            }
         }
 
         [HttpPost("register")]

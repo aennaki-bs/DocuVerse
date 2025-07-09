@@ -35,6 +35,7 @@ const EmailVerification = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showResendSuccess, setShowResendSuccess] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Initialize refs array
@@ -65,20 +66,34 @@ const EmailVerification = () => {
 
     setIsLoading(true);
     setError(null);
+    setShowResendSuccess(false);
     try {
       await authService.resendVerificationCode(email);
+      
+      // Show success message
+      setShowResendSuccess(true);
+      
+      // Keep the toast for additional feedback
       toast({
         title: "Success",
         description: "Verification code has been resent to your email.",
       });
+      
       // Reset the verification code fields
       setVerificationCode(["", "", "", "", "", ""]);
+      
       // Focus the first input after resetting
       setTimeout(() => {
         if (inputRefs.current[0]) {
           inputRefs.current[0].focus();
         }
       }, 100);
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => {
+        setShowResendSuccess(false);
+      }, 10000);
+      
     } catch (error: any) {
       console.error("Error resending verification code:", error);
       toast({
@@ -321,6 +336,28 @@ const EmailVerification = () => {
               </p>
             </div>
 
+            {/* Resend Success Message */}
+            {showResendSuccess && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                className="bg-green-900/30 backdrop-blur-md border border-green-700/50 rounded-lg p-4 text-center"
+              >
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Send className="h-5 w-5 text-green-400" />
+                  <span className="text-green-400 font-medium">Code Resent Successfully!</span>
+                </div>
+                <p className="text-green-300 text-sm">
+                  A new verification code has been sent to{" "}
+                  <span className="font-medium text-green-200">{email}</span>
+                </p>
+                <p className="text-green-300/70 text-xs mt-1">
+                  Please check your inbox and enter the new code below.
+                </p>
+              </motion.div>
+            )}
+
             <div className="space-y-2">
               <p className="text-blue-300 text-center text-sm font-medium">
                 Verification Code
@@ -397,7 +434,14 @@ const EmailVerification = () => {
                 disabled={isLoading}
                 className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30"
               >
-                Resend Code
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Resend Code"
+                )}
               </Button>
             </div>
           </CardFooter>

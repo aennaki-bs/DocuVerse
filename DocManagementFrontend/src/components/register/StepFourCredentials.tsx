@@ -18,6 +18,22 @@ const UsernameEmailForm: React.FC = () => {
     email: false,
   });
 
+  // Helper function to check if a field is valid
+  const isFieldValid = (name: string, value: string) => {
+    if (!value?.trim()) return false;
+    
+    // Check for validation errors from the API
+    if (stepValidation.errors[name]) return false;
+    
+    if (name === "username") {
+      return value.length >= 4;
+    } else if (name === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(value);
+    }
+    return false;
+  };
+
   // Handle input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -26,6 +42,11 @@ const UsernameEmailForm: React.FC = () => {
     // Clear error when user types
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+
+    // Validate field in real-time
+    if (touched[name]) {
+      validateField(name, value);
     }
   };
 
@@ -36,18 +57,24 @@ const UsernameEmailForm: React.FC = () => {
 
     const isValid = validateField(name, value);
 
-    // If the field is valid, check with the API
+    // If the field is valid, check with the API (only if not already checking)
     if (isValid && value) {
-      if (name === "username" && value.length >= 3) {
+      if (name === "username" && value.length >= 4 && !isChecking.username) {
         setIsChecking((prev) => ({ ...prev, username: true }));
-        // API call to validate username
-        await validateUsername();
-        setIsChecking((prev) => ({ ...prev, username: false }));
-      } else if (name === "email" && value.includes("@")) {
+        try {
+          // API call to validate username
+          await validateUsername();
+        } finally {
+          setIsChecking((prev) => ({ ...prev, username: false }));
+        }
+      } else if (name === "email" && value.includes("@") && !isChecking.email) {
         setIsChecking((prev) => ({ ...prev, email: true }));
-        // API call to validate email
-        await validateEmail();
-        setIsChecking((prev) => ({ ...prev, email: false }));
+        try {
+          // API call to validate email
+          await validateEmail();
+        } finally {
+          setIsChecking((prev) => ({ ...prev, email: false }));
+        }
       }
     }
   };
@@ -71,8 +98,8 @@ const UsernameEmailForm: React.FC = () => {
 
     if (!value.trim()) {
       error = `${name.charAt(0).toUpperCase() + name.slice(1)} is required`;
-    } else if (name === "username" && value.length < 3) {
-      error = "Username must be at least 3 characters";
+    } else if (name === "username" && value.length < 4) {
+      error = "Username must be at least 4 characters";
     } else if (name === "email") {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(value)) {
@@ -93,8 +120,8 @@ const UsernameEmailForm: React.FC = () => {
     if (!formData.username?.trim()) {
       newErrors.username = "Username is required";
       isValid = false;
-    } else if (formData.username.length < 3) {
-      newErrors.username = "Username must be at least 3 characters";
+    } else if (formData.username.length < 4) {
+      newErrors.username = "Username must be at least 4 characters";
       isValid = false;
     }
 
@@ -114,37 +141,68 @@ const UsernameEmailForm: React.FC = () => {
 
     // If client validation passes, perform API validation
     if (isValid) {
-      setIsChecking({ username: true, email: true });
-
-      // Check both username and email availability
-      const [usernameValid, emailValid] = await Promise.all([
-        validateUsername(),
-        validateEmail(),
-      ]);
-
-      setIsChecking({ username: false, email: false });
-
-      // If either validation fails, update errors from the context
-      if (!usernameValid || !emailValid) {
-        if (stepValidation.errors.username) {
-          newErrors.username = stepValidation.errors.username;
-        }
-        if (stepValidation.errors.email) {
-          newErrors.email = stepValidation.errors.email;
-        }
-        setErrors(newErrors);
+      // Don't start new validation if already in progress
+      if (isChecking.username || isChecking.email) {
         return false;
       }
 
-      return usernameValid && emailValid;
+      setIsChecking({ username: true, email: true });
+
+      try {
+        // Check both username and email availability
+        const [usernameValid, emailValid] = await Promise.all([
+          validateUsername(),
+          validateEmail(),
+        ]);
+
+        // If either validation fails, update errors from the context
+        if (!usernameValid || !emailValid) {
+          if (stepValidation.errors.username) {
+            newErrors.username = stepValidation.errors.username;
+          }
+          if (stepValidation.errors.email) {
+            newErrors.email = stepValidation.errors.email;
+          }
+          setErrors(newErrors);
+          return false;
+        }
+
+        return usernameValid && emailValid;
+      } finally {
+        setIsChecking({ username: false, email: false });
+      }
     }
 
     return isValid;
   };
 
+  // Helper function to check if form can be submitted
+  const canSubmit = () => {
+    // Check if validation is in progress
+    if (isChecking.username || isChecking.email) {
+      return false;
+    }
+    
+    // Check if there are any validation errors
+    if (errors.username || errors.email || stepValidation.errors.username || stepValidation.errors.email) {
+      return false;
+    }
+    
+    // Check if fields are properly filled and valid
+    const usernameValid = isFieldValid("username", formData.username || "");
+    const emailValid = isFieldValid("email", formData.email || "");
+    
+    return usernameValid && emailValid;
+  };
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent submission if form is not ready
+    if (!canSubmit()) {
+      return;
+    }
 
     // Mark all fields as touched
     setTouched({
@@ -209,7 +267,7 @@ const UsernameEmailForm: React.FC = () => {
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <AlertCircle className="h-4 w-4 text-red-500" />
                 </div>
-              ) : touched.username && !errors.username ? (
+              ) : touched.username && !errors.username && isFieldValid("username", formData.username || "") ? (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <Check className="h-4 w-4 text-green-500" />
                 </div>
@@ -257,7 +315,7 @@ const UsernameEmailForm: React.FC = () => {
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <AlertCircle className="h-4 w-4 text-red-500" />
                 </div>
-              ) : touched.email && !errors.email ? (
+              ) : touched.email && !errors.email && isFieldValid("email", formData.email || "") ? (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <Check className="h-4 w-4 text-green-500" />
                 </div>

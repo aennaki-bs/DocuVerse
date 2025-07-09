@@ -83,7 +83,7 @@ namespace DocManagementBackend.Controllers
                 return Unauthorized("Email Not Verified!");
             if (!user.IsActive)
                 return Unauthorized("User Account Desactivated!");
-            var verificationLink = $"{frontDomain}/update-password/{user.Email}";
+            var verificationLink = $"{frontDomain}update-password/{user.Email}";
             var emailBody = AuthHelper.createPassEmailBody(verificationLink);
             AuthHelper.SendEmail(user.Email, "Password Reset", emailBody);
             return Ok("A Link Is Sent To Your Email.");

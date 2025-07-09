@@ -66,3 +66,49 @@ Problems faced:
 
 
 Handle duplicate notifications
+
+
+sgnup
+first step redendence
+username issue && email
+/ in email verif
+message in resend code
+role display
+list d'archivache
+documentType cretaion add the type number as type
+documentType_> typenumber, filter.
+key->code
+dont display the will be autogenrated
+mask type code
+status in series
+inactive filter
+mask code circuit and title->description
+after delete circuit
+status filter remove flexible
+creation buttons should be one
+button from steps to statueses
+step2 in creation step improve the UI
+approver check
+approval group remove rule in search
+auto refresh after assigning approval to step
+
+impact of desactivation of a circuit
+
+line eliment -> basic data
+remove the navebar
+element type code -> should be 
+remove tablename
+remove the select step in element
+
+structure homogene
+
+
+approval history filter by user
+
+
+documentManagementVerse
+
+
+
+
+

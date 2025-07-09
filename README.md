@@ -87,7 +87,7 @@ Experience the power of DocuVerse through its intuitive interface:
 ![Document Creation](images/Screenshot%202025-07-02%20161154.png)
 *Streamlined document creation with intelligent form validation*
 
-![Document Editing](images/Screenshot 2025-07-02 161205.png)
+![Document Editing](images/Screenshot%202025-07-02%20161205.png)
 *Advanced document editor with real-time collaboration features*
 
 #### **Document Listing & Search**

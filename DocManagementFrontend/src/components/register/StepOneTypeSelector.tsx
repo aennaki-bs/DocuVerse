@@ -165,7 +165,7 @@ const UserTypeSelection: React.FC = () => {
         <AccountTypeCard
           type="personal"
           title="Personal Account"
-          description="For individual users who want to manage their own documents"
+          description=""
           icon={<User size={24} />}
           // features={[
           //   "Store and organize your documents",
@@ -181,7 +181,7 @@ const UserTypeSelection: React.FC = () => {
         <AccountTypeCard
           type="company"
           title="Company Account"
-          description="For businesses and organizations with multiple users"
+          description=""
           icon={<Building2 size={24} />}
           // features={[
           //   "Multi-user collaboration",

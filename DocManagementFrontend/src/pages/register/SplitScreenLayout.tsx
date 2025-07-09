@@ -128,7 +128,7 @@ const StepGuidance = () => {
         {
           icon: <User size={18} />,
           title: "Username",
-          content: "Choose a unique username for logging in",
+          content: "Choose a unique username for logging in, it must be at least 4 characters long",
         },
         {
           icon: <Mail size={18} />,
